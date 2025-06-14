@@ -90,11 +90,3 @@ bool parse_response(const char *buffer, int *status, char *message, char *data) 
     else // 데이터 없이 상태코드+메시지만 있을 경우 "400|오류|"
         return sscanf(buffer, "%d|%[^|]|", status, message) >= 2;
 }
-
-bool send_response(SOCKET sock, int status, const char *message, const char *data) // status, message, data를 "상태코드|메시지|데이터" 형태로 묶어서 소켓을 통해 전송하는 함수
-
-{
-    char response[BUFFER_SIZE];
-    snprintf(response, BUFFER_SIZE, "%d|%s|%s", status, message, data ? data : "");
-    return send_data(sock, data, strlen(data));
-}

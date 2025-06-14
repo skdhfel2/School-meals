@@ -8,15 +8,18 @@
 
 static sqlite3 *db = NULL; // db 연결 객체 포인터
 
-bool init_db(void) // 데이터베이스 초기화 함수
+bool init_db(void)
 {
+    printf("데이터베이스 초기화 시작...\n");
+    
     int rc = sqlite3_open("school_meals.db", &db);          // db 파일 열기
     sqlite3_exec(db, "PRAGMA foreign_keys = ON;", 0, 0, 0); // 왜래키 기능 on, 이걸 해야 오류나면 알수있음
     if (rc != SQLITE_OK)                                    // 연결 실패하면 오류메시지 출력
     {
-        fprintf(stderr, "Cannot open database: %s\n", sqlite3_errmsg(db));
+        printf("데이터베이스 연결 실패: %s\n", sqlite3_errmsg(db));
         return false; // 실패하면 종료
     }
+    printf("데이터베이스 연결 성공\n");
 
     const char *create_users_table = // users라는 테이블 생성
         "CREATE TABLE IF NOT EXISTS users ("
@@ -32,10 +35,11 @@ bool init_db(void) // 데이터베이스 초기화 함수
     rc = sqlite3_exec(db, create_users_table, 0, 0, &err_msg); // SQL실행 함수
     if (rc != SQLITE_OK)
     {
-        fprintf(stderr, "SQL error: %s\n", err_msg);
+        printf("users 테이블 생성 실패: %s\n", err_msg);
         sqlite3_free(err_msg);
         return false;
     }
+    printf("users 테이블 생성 성공\n");
 
     const char *create_children_table =
         "CREATE TABLE IF NOT EXISTS children ("
@@ -49,10 +53,11 @@ bool init_db(void) // 데이터베이스 초기화 함수
     rc = sqlite3_exec(db, create_children_table, 0, 0, &err_msg);
     if (rc != SQLITE_OK)
     {
-        fprintf(stderr, "SQL error: %s\n", err_msg);
+        printf("children 테이블 생성 실패: %s\n", err_msg);
         sqlite3_free(err_msg);
         return false;
     }
+    printf("children 테이블 생성 성공\n");
 
     const char *create_meals_table =
         "CREATE TABLE IF NOT EXISTS meals ("
@@ -66,10 +71,11 @@ bool init_db(void) // 데이터베이스 초기화 함수
     rc = sqlite3_exec(db, create_meals_table, 0, 0, &err_msg);
     if (rc != SQLITE_OK)
     {
-        fprintf(stderr, "SQL error: %s\n", err_msg);
+        printf("meals 테이블 생성 실패: %s\n", err_msg);
         sqlite3_free(err_msg);
         return false;
     }
+    printf("meals 테이블 생성 성공\n");
 
     return true;
 }
@@ -103,28 +109,24 @@ bool is_user_exists(const char *id) // 사용자 ID 조회
 
 bool add_user(const User *user)
 {
-    const char *sql =
-        "INSERT INTO users (id, pw, name, role, edu_office, school_name) "
-        "VALUES (?, ?, ?, ?, ?, ?);"; // 사용자 정보를 users 테이블에 넣는 쿼리
+    printf("사용자 추가 시도: ID=%s, 역할=%s\n", user->id, user->role);
+    
+    char *err_msg = NULL;
+    char sql[BUFFER_SIZE];
+    snprintf(sql, sizeof(sql),
+             "INSERT INTO users (id, pw, name, role, edu_office, school_name) "
+             "VALUES ('%s', '%s', '%s', '%s', '%s', '%s');",
+             user->id, user->pw, user->name, user->role, user->edu_office, user->school_name);
 
-    sqlite3_stmt *stmt;
-    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+    int rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
     if (rc != SQLITE_OK)
     {
+        printf("사용자 추가 실패: %s\n", err_msg);
+        sqlite3_free(err_msg);
         return false;
     }
-
-    sqlite3_bind_text(stmt, 1, user->id, -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 2, user->pw, -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 3, user->name, -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 4, user->role, -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 5, user->edu_office, -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 6, user->school_name, -1, SQLITE_STATIC);
-
-    rc = sqlite3_step(stmt);
-    sqlite3_finalize(stmt);
-
-    return (rc == SQLITE_DONE);
+    printf("사용자 추가 성공\n");
+    return true;
 }
 
 bool get_user(const char *id, User *user)

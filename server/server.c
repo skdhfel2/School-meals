@@ -1,12 +1,12 @@
-#include "common.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <windows.h>
 #include <signal.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include "common.h"
 #include "protocol.h"
 #include "db_handler.h"
-#include "db.h"
 
 #define MAX_CLIENTS 10
 #define PORT 8080
@@ -15,6 +15,10 @@ static SOCKET server_fd;
 static SOCKET client_sockets[MAX_CLIENTS];
 static CRITICAL_SECTION clients_mutex;
 static volatile sig_atomic_t running = 1;
+
+// 함수 선언
+bool handle_register_general(SOCKET client_socket, const char *id, const char *pw, const char *edu_office, const char *school_name);
+bool send_response(SOCKET client_socket, int status, const char *message, const char *data);
 
 void signal_handler(int sig)
 {
@@ -92,21 +96,9 @@ DWORD WINAPI handle_client(LPVOID arg)
                 }
                 else
                 {
-                    User new_user = {0};
-                    strncpy(new_user.id, id, MAX_ID_LEN - 1);
-                    strncpy(new_user.pw, pw, MAX_PW_LEN - 1); // 평문 비밀번호
-                    strncpy(new_user.name, "", MAX_NAME_LEN - 1);
-                    strncpy(new_user.role, ROLE_GENERAL, MAX_ROLE_LEN - 1);
-                    strncpy(new_user.edu_office, edu_office, MAX_EDU_OFFICE_LEN - 1);
-                    strncpy(new_user.school_name, school_name, MAX_SCHOOL_NAME_LEN - 1);
-
-                    if (add_user(&new_user))
+                    if (handle_register_general(client_socket, id, pw, edu_office, school_name))
                     {
                         send_response(client_socket, RESP_SUCCESS, RESP_REGISTER_OK, "");
-                    }
-                    else
-                    {
-                        send_response(client_socket, RESP_ERROR, RESP_DB_ERROR, "");
                     }
                 }
             }
@@ -355,6 +347,61 @@ DWORD WINAPI handle_client(LPVOID arg)
     closesocket(client_socket);
     free(arg);
     return 0;
+}
+
+bool handle_register_general(SOCKET client_socket, const char *id, const char *pw, const char *edu_office, const char *school_name)
+{
+    printf("회원가입 처리 시작: ID=%s\n", id);
+
+    // 사용자 정보 생성
+    User user = {0};
+    strncpy(user.id, id, MAX_ID_LEN - 1);
+    strncpy(user.pw, pw, MAX_PW_LEN - 1);
+    strncpy(user.name, "", MAX_NAME_LEN - 1);
+    strncpy(user.role, ROLE_GENERAL, MAX_ROLE_LEN - 1);
+    strncpy(user.edu_office, edu_office, MAX_EDU_OFFICE_LEN - 1);
+    strncpy(user.school_name, school_name, MAX_SCHOOL_NAME_LEN - 1);
+
+    printf("사용자 정보 생성 완료\n");
+
+    // 데이터베이스에 사용자 추가
+    if (add_user(&user))
+    {
+        printf("회원가입 성공\n");
+        return true;
+    }
+    else
+    {
+        printf("회원가입 실패: 데이터베이스 오류\n");
+        return false;
+    }
+}
+
+bool send_response(SOCKET client_socket, int status, const char *message, const char *data)
+{
+    printf("응답 전송 시도: 상태=%d, 메시지=%s\n", status, message);
+    
+    char response[BUFFER_SIZE];
+    if (data && strlen(data) > 0)
+    {
+        snprintf(response, sizeof(response), "%d%s%s%s%s", status, CMD_DELIMITER, message, CMD_DELIMITER, data);
+    }
+    else
+    {
+        snprintf(response, sizeof(response), "%d%s%s", status, CMD_DELIMITER, message);
+    }
+
+    printf("전송할 응답: %s\n", response);
+    
+    int bytes_sent = send(client_socket, response, strlen(response), 0);
+    if (bytes_sent < 0)
+    {
+        printf("응답 전송 실패: %d bytes\n", bytes_sent);
+        return false;
+    }
+    
+    printf("응답 전송 성공: %d bytes\n", bytes_sent);
+    return true;
 }
 
 int main()
