@@ -7,6 +7,7 @@
 #include "common.h"
 #include "protocol.h"
 #include "db_handler.h"
+#include "neis_api.h"
 
 #define MAX_CLIENTS 10
 #define PORT 8080
@@ -397,14 +398,25 @@ bool handle_register_general(SOCKET client_socket, const char *id, const char *p
 {
     printf("회원가입 처리 시작: ID=%s\n", id);
 
+    // 학교 코드 조회
+    char edu_code[10] = {0};
+    char school_code[20] = {0};
+    
+    if (!resolve_school_code(school_name, edu_code, school_code))
+    {
+        printf("❌ 학교 정보를 찾을 수 없습니다: %s\n", school_name);
+        send_response(client_socket, RESP_ERROR, "학교 정보를 찾을 수 없습니다.", "");
+        return false;
+    }
+
     // 사용자 정보 생성
     User user = {0};
     strncpy(user.id, id, MAX_ID_LEN - 1);
     strncpy(user.pw, pw, MAX_PW_LEN - 1);
     strncpy(user.name, "", MAX_NAME_LEN - 1);
     strncpy(user.role, ROLE_GENERAL, MAX_ROLE_LEN - 1);
-    strncpy(user.edu_office, edu_office, MAX_EDU_OFFICE_LEN - 1);
-    strncpy(user.school_name, school_name, MAX_SCHOOL_NAME_LEN - 1);
+    strncpy(user.edu_office, edu_code, MAX_EDU_OFFICE_LEN - 1);
+    strncpy(user.school_name, school_code, MAX_SCHOOL_NAME_LEN - 1);
 
     printf("사용자 정보 생성 완료\n");
 
