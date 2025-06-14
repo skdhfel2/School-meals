@@ -1,0 +1,23 @@
+{
+  "files.associations": {
+    "winsock2.h": "c",
+    "ws2tcpip.h": "c",
+    "db.h": "c",
+    "windows.h": "c",
+    "stdio.h": "c",
+    "common.h": "c",
+    "curl.h": "c",
+    "json_object.h": "c",
+    "sqlite3.h": "c"
+  },
+  // 기본 터미널 일단 제거
+  "terminal.integrated.defaultProfile.windows": null,
+
+  // 사용자 지정 터미널 프로필 등록
+  "terminal.integrated.profiles.windows": {
+    "bash (MSYS2)": {
+      "path": "C:\\msys64\\mingw64\\bin\\bash.exe",
+      "args": ["--login"]
+    }
+  }
+}
