@@ -113,10 +113,17 @@ bool add_user(const User *user)
     
     char *err_msg = NULL;
     char sql[BUFFER_SIZE];
+    // TODO: 추후 이름 필드 구현 시 활성화 예정
+    /*
     snprintf(sql, sizeof(sql),
              "INSERT INTO users (id, pw, name, role, edu_office, school_name) "
              "VALUES ('%s', '%s', '%s', '%s', '%s', '%s');",
              user->id, user->pw, user->name, user->role, user->edu_office, user->school_name);
+    */
+    snprintf(sql, sizeof(sql),
+             "INSERT INTO users (id, pw, role, edu_office, school_name) "
+             "VALUES ('%s', '%s', '%s', '%s', '%s');",
+             user->id, user->pw, user->role, user->edu_office, user->school_name);
 
     int rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
     if (rc != SQLITE_OK)
@@ -131,7 +138,11 @@ bool add_user(const User *user)
 
 bool get_user(const char *id, User *user)
 {
-    const char *sql = "SELECT id, pw, name, role, edu_office, school_name FROM users WHERE id = ?;"; // users 테이블에서 특정 ID의 지정한 사용자 정보를 가져옴
+    // TODO: 추후 이름 필드 구현 시 활성화 예정
+    /*
+    const char *sql = "SELECT id, pw, name, role, edu_office, school_name FROM users WHERE id = ?;";
+    */
+    const char *sql = "SELECT id, pw, role, edu_office, school_name FROM users WHERE id = ?;";
     sqlite3_stmt *stmt;
 
     int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
@@ -140,16 +151,22 @@ bool get_user(const char *id, User *user)
         return false;
     }
 
-    sqlite3_bind_text(stmt, 1, id, -1, SQLITE_STATIC); // ?에 사용자 ID 값 바인딩
+    sqlite3_bind_text(stmt, 1, id, -1, SQLITE_STATIC);
 
-    if (sqlite3_step(stmt) == SQLITE_ROW) // SELECT 결과가 한 줄이라도 있으면 SQLITE_ROW 반환후 조건이 성립하면
+    if (sqlite3_step(stmt) == SQLITE_ROW)
     {
-        strncpy(user->id, (const char *)sqlite3_column_text(stmt, 0), MAX_ID_LEN - 1); // SELECT한 0번 컬럼 = id 값을 user->id에 복사
+        strncpy(user->id, (const char *)sqlite3_column_text(stmt, 0), MAX_ID_LEN - 1);
         strncpy(user->pw, (const char *)sqlite3_column_text(stmt, 1), MAX_PW_LEN - 1);
+        // TODO: 추후 이름 필드 구현 시 활성화 예정
+        /*
         strncpy(user->name, (const char *)sqlite3_column_text(stmt, 2), MAX_NAME_LEN - 1);
         strncpy(user->role, (const char *)sqlite3_column_text(stmt, 3), sizeof(user->role) - 1);
         strncpy(user->edu_office, (const char *)sqlite3_column_text(stmt, 4), MAX_EDU_OFFICE_LEN - 1);
         strncpy(user->school_name, (const char *)sqlite3_column_text(stmt, 5), MAX_SCHOOL_NAME_LEN - 1);
+        */
+        strncpy(user->role, (const char *)sqlite3_column_text(stmt, 2), sizeof(user->role) - 1);
+        strncpy(user->edu_office, (const char *)sqlite3_column_text(stmt, 3), MAX_EDU_OFFICE_LEN - 1);
+        strncpy(user->school_name, (const char *)sqlite3_column_text(stmt, 4), MAX_SCHOOL_NAME_LEN - 1);
 
         sqlite3_finalize(stmt);
         return true;
@@ -158,6 +175,7 @@ bool get_user(const char *id, User *user)
     sqlite3_finalize(stmt);
     return false;
 }
+
 bool get_children_db(const char *parent_id, Child *children, int *count)
 {
     sqlite3_stmt *stmt;
@@ -190,10 +208,16 @@ bool get_children_db(const char *parent_id, Child *children, int *count)
     sqlite3_finalize(stmt);
     return true;
 }
+
 bool update_user(const User *user)
-{ // users 테이블에서 특정 ID의 사용자를 찾아서 정보 수정
+{
+    // TODO: 추후 이름 필드 구현 시 활성화 예정
+    /*
     const char *sql =
         "UPDATE users SET pw = ?, name = ?, edu_office = ?, school_name = ? WHERE id = ?;";
+    */
+    const char *sql =
+        "UPDATE users SET pw = ?, edu_office = ?, school_name = ? WHERE id = ?;";
 
     sqlite3_stmt *stmt;
     int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
@@ -202,10 +226,16 @@ bool update_user(const User *user)
         return false;
     }
     sqlite3_bind_text(stmt, 1, user->pw, -1, SQLITE_STATIC);          // 비밀번호
+    // TODO: 추후 이름 필드 구현 시 활성화 예정
+    /*
     sqlite3_bind_text(stmt, 2, user->name, -1, SQLITE_STATIC);        // 이름
     sqlite3_bind_text(stmt, 3, user->edu_office, -1, SQLITE_STATIC);  // 교육청
     sqlite3_bind_text(stmt, 4, user->school_name, -1, SQLITE_STATIC); // 학교명
     sqlite3_bind_text(stmt, 5, user->id, -1, SQLITE_STATIC);
+    */
+    sqlite3_bind_text(stmt, 2, user->edu_office, -1, SQLITE_STATIC);  // 교육청
+    sqlite3_bind_text(stmt, 3, user->school_name, -1, SQLITE_STATIC); // 학교명
+    sqlite3_bind_text(stmt, 4, user->id, -1, SQLITE_STATIC);
 
     rc = sqlite3_step(stmt);
     sqlite3_finalize(stmt);

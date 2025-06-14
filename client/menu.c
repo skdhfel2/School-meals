@@ -88,6 +88,13 @@ void handle_login_menu_input(int choice) {
             fgets(pw, sizeof(pw), stdin);
             pw[strcspn(pw, "\n")] = 0;
 
+            // TODO: 추후 이름 필드 구현 시 활성화 예정
+            /*
+            printf("이름: ");
+            fgets(name, sizeof(name), stdin);
+            name[strcspn(name, "\n")] = 0;
+            */
+
             printf("교육청 이름: ");
             fgets(edu_office, sizeof(edu_office), stdin);
             edu_office[strcspn(edu_office, "\n")] = 0;
@@ -110,5 +117,9 @@ void handle_general_menu_input(int choice) {
 }
 
 void handle_parent_menu_input(int choice) {
+    // TODO: 추후 부모 사용자 기능 구현 시 활성화 예정
+    printf("부모 사용자 기능은 현재 비활성화되어 있습니다.\n");
+    /*
     handle_parent_menu(choice);
+    */
 } 

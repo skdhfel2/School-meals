@@ -1,3 +1,5 @@
+// TODO: 추후 부모 사용자 기능 구현 시 활성화 예정
+/*
 #include "common.h"
 #include "protocol.h"
 #include "handlers.h"
@@ -174,3 +176,4 @@ void handle_parent_menu(int choice)
     }
     }
 }
+*/

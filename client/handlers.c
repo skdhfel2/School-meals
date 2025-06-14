@@ -185,7 +185,8 @@ bool get_child_meals_period(const char *parent_id, const char *child_id, const c
     return receive_response(response);
 }
 
-// 자녀 관리 핸들러
+// TODO: 추후 부모 사용자 기능 구현 시 활성화 예정
+/*
 bool add_child(const char *parent_id, const char *child_id, char *response)
 {
     char buffer[BUFFER_SIZE];
@@ -230,6 +231,7 @@ bool get_children(const char *parent_id, char *response)
 
     return receive_response(response);
 }
+*/
 
 // 사용자 관리 핸들러
 bool handle_add_user(const char *id, const char *pw, const char *edu_office, const char *school_name, char *response)
