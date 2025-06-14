@@ -54,6 +54,8 @@
 #define CMD_CHILD_MEAL "CHILD_MEAL"
 #define CMD_CHILD_MULTI_MEAL "CHILD_MULTI_MEAL"
 #define CMD_GET_MEAL "GET_MEAL"
+#define CMD_OTHER_MEAL "OTHER_MEAL"             // 다른 학교 단일 급식
+#define CMD_MULTI_OTHER_MEAL "MULTI_OTHER_MEAL" // 다른 학교 기간 급식
 #define CMD_GET_MULTI_MEAL "GET_MULTI_MEAL"
 
 // 사용자 역할

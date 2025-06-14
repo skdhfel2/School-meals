@@ -32,11 +32,15 @@ DWORD WINAPI handle_client(LPVOID arg)
 
     while (running)
     {
-        if (!receive_data(client_socket, buffer, BUFFER_SIZE - 1))
+        // 클라이언트 요청 수신
+        int bytes_received = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
+        if (bytes_received <= 0)
         {
+            printf("클라이언트 연결 종료 또는 오류\n");
             break;
         }
 
+        buffer[bytes_received] = '\0';
         printf("수신된 요청: %s\n", buffer);
 
         // 프로토콜 파싱
@@ -45,18 +49,52 @@ DWORD WINAPI handle_client(LPVOID arg)
         {
             printf("잘못된 요청 형식\n");
             send_response(client_socket, RESP_ERROR, RESP_INVALID_REQUEST, "");
-            break;
+            continue;
         }
 
         printf("명령어: %s\n", cmd);
 
-        char *id = strtok(NULL, CMD_DELIMITER);
-        char *pw = strtok(NULL, CMD_DELIMITER); // 비밀번호
-        char *edu_office = strtok(NULL, CMD_DELIMITER);
-        char *school_name = strtok(NULL, CMD_DELIMITER);
-        char *date = strtok(NULL, CMD_DELIMITER);
-        char *child_id = strtok(NULL, CMD_DELIMITER);
-        char *period = strtok(NULL, CMD_DELIMITER);
+        // 파라미터 파싱
+        char *id = NULL;
+        char *pw = NULL;
+        char *edu_office = NULL;
+        char *school_name = NULL;
+        char *date = NULL;
+        char *child_id = NULL;
+        char *period = NULL;
+
+        if (strcmp(cmd, CMD_GET_MEAL) == 0)
+        {
+            edu_office = strtok(NULL, CMD_DELIMITER);
+            school_name = strtok(NULL, CMD_DELIMITER);
+            date = strtok(NULL, CMD_DELIMITER);
+
+            printf("파싱된 파라미터:\n");
+            printf("교육청: %s\n", edu_office);
+            printf("학교: %s\n", school_name);
+            printf("날짜: %s\n", date);
+        }
+        else if (strcmp(cmd, CMD_GET_MULTI_MEAL) == 0)
+        {
+            edu_office = strtok(NULL, CMD_DELIMITER);
+            school_name = strtok(NULL, CMD_DELIMITER);
+            period = strtok(NULL, CMD_DELIMITER);
+
+            printf("파싱된 파라미터:\n");
+            printf("교육청: %s\n", edu_office);
+            printf("학교: %s\n", school_name);
+            printf("기간: %s\n", period);
+        }
+        else
+        {
+            id = strtok(NULL, CMD_DELIMITER);
+            pw = strtok(NULL, CMD_DELIMITER);
+            edu_office = strtok(NULL, CMD_DELIMITER);
+            school_name = strtok(NULL, CMD_DELIMITER);
+            date = strtok(NULL, CMD_DELIMITER);
+            child_id = strtok(NULL, CMD_DELIMITER);
+            period = strtok(NULL, CMD_DELIMITER);
+        }
 
         if (strcmp(cmd, CMD_LOGIN) == 0)
         {
@@ -291,10 +329,10 @@ DWORD WINAPI handle_client(LPVOID arg)
         {
             if (edu_office && school_name && date)
             {
-                Meal meal_data = {0};
-                if (get_meal(date, edu_office, school_name, &meal_data))
+                char meal[MAX_MEAL_LEN] = {0};
+                if (get_meal_from_neis(edu_office, school_name, date, meal))
                 {
-                    send_response(client_socket, RESP_SUCCESS, RESP_GET_MEAL_OK, meal_data.meal);
+                    send_response(client_socket, RESP_SUCCESS, "급식 정보 조회 성공", meal);
                 }
                 else
                 {
@@ -317,8 +355,15 @@ DWORD WINAPI handle_client(LPVOID arg)
                 }
                 else
                 {
-                    // TODO: NEIS API 연동
-                    send_response(client_socket, RESP_SUCCESS, RESP_GET_MULTI_MEAL_OK, "");
+                    char meals[MAX_MEAL_LEN] = {0};
+                    if (get_meals_period_from_neis(edu_office, school_name, start_date, end_date, meals))
+                    {
+                        send_response(client_socket, RESP_SUCCESS, "기간 급식 정보 조회 성공", meals);
+                    }
+                    else
+                    {
+                        send_response(client_socket, RESP_ERROR, ERR_MEAL_NOT_FOUND, "");
+                    }
                 }
             }
             else
@@ -332,7 +377,7 @@ DWORD WINAPI handle_client(LPVOID arg)
         }
     }
 
-    // 클라이언트 연결 종료
+    // 클라이언트 소켓 정리
     EnterCriticalSection(&clients_mutex);
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
@@ -344,8 +389,7 @@ DWORD WINAPI handle_client(LPVOID arg)
     }
     LeaveCriticalSection(&clients_mutex);
 
-    closesocket(client_socket);
-    free(arg);
+    close_socket(client_socket);
     return 0;
 }
 
@@ -379,11 +423,11 @@ bool handle_register_general(SOCKET client_socket, const char *id, const char *p
 
 bool send_response(SOCKET client_socket, int status, const char *message, const char *data)
 {
-    printf("응답 전송 시도: 상태=%d, 메시지=%s\n", status, message);
-    
     char response[BUFFER_SIZE];
+
     if (data && strlen(data) > 0)
     {
+        // 줄바꿈 제거 없이 그대로 보냄
         snprintf(response, sizeof(response), "%d%s%s%s%s", status, CMD_DELIMITER, message, CMD_DELIMITER, data);
     }
     else
@@ -391,17 +435,8 @@ bool send_response(SOCKET client_socket, int status, const char *message, const 
         snprintf(response, sizeof(response), "%d%s%s", status, CMD_DELIMITER, message);
     }
 
-    printf("전송할 응답: %s\n", response);
-    
     int bytes_sent = send(client_socket, response, strlen(response), 0);
-    if (bytes_sent < 0)
-    {
-        printf("응답 전송 실패: %d bytes\n", bytes_sent);
-        return false;
-    }
-    
-    printf("응답 전송 성공: %d bytes\n", bytes_sent);
-    return true;
+    return bytes_sent >= 0;
 }
 
 int main()
@@ -504,18 +539,6 @@ int main()
 
         printf("클라이언트 연결됨: %s:%d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
-        // 클라이언트 요청 수신
-        char buffer[BUFFER_SIZE] = {0};
-        int bytes_received = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
-        if (bytes_received <= 0)
-        {
-            printf("클라이언트 연결 종료 또는 오류\n");
-            close_socket(client_socket);
-            continue;
-        }
-
-        printf("수신된 요청: %s\n", buffer);
-
         // 클라이언트 소켓 저장
         EnterCriticalSection(&clients_mutex);
         int i;
@@ -537,21 +560,20 @@ int main()
         }
 
         // 클라이언트 처리 스레드 생성
-        SOCKET *client_socket_ptr = malloc(sizeof(SOCKET));
-        *client_socket_ptr = client_socket;
-        HANDLE thread = CreateThread(NULL, 0, handle_client, client_socket_ptr, 0, NULL);
+        HANDLE thread = CreateThread(NULL, 0, handle_client, &client_sockets[i], 0, NULL);
         if (thread == NULL)
         {
-            fprintf(stderr, "스레드 생성 실패, 오류: %lu\n", GetLastError());
-            free(client_socket_ptr);
-            close_socket(client_socket);
-            continue;
+            fprintf(stderr, "스레드 생성 실패\n");
+            close_socket(client_sockets[i]);
+            client_sockets[i] = 0;
         }
-        CloseHandle(thread); // 스레드 핸들 닫기 (스레드 종료 기다리지 않음)
+        else
+        {
+            CloseHandle(thread);
+        }
     }
 
     // 정리
-    EnterCriticalSection(&clients_mutex);
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
         if (client_sockets[i] != 0)
@@ -559,11 +581,11 @@ int main()
             close_socket(client_sockets[i]);
         }
     }
-    LeaveCriticalSection(&clients_mutex);
 
     close_socket(server_fd);
-    close_db();
     cleanup_network();
+    close_db();
     DeleteCriticalSection(&clients_mutex);
+
     return 0;
 }

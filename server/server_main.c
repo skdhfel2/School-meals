@@ -5,6 +5,7 @@
 #include <signal.h>
 #include "protocol.h"
 #include "db.h"
+#include "neis_api.c"
 
 #define PORT 8080
 
@@ -50,10 +51,10 @@ void handle_client(SOCKET client_socket) // 클라이언트와의 연결을 처�
             char *id = strtok(NULL, CMD_DELIMITER);
             char *pw = strtok(NULL, CMD_DELIMITER);
             char *name = strtok(NULL, CMD_DELIMITER); // 이름 추가
-            char *edu_office = strtok(NULL, CMD_DELIMITER);
+            char *edu_office_name = strtok(NULL, CMD_DELIMITER);
             char *school_name = strtok(NULL, CMD_DELIMITER);
 
-            if (id && pw && name && edu_office && school_name) // 모든 필수 정보가 제공되었는지 확인
+            if (id && pw && name && edu_office_name && school_name) // 모든 필수 정보가 제공되었는지 확인
             {
                 if (is_user_exists(id)) // 사용자 ID가 이미 존재하는지 확인
                 {
@@ -61,6 +62,20 @@ void handle_client(SOCKET client_socket) // 클라이언트와의 연결을 처�
                 }
                 else // 사용자 ID가 존재하지 않으면 새 사용자 등록
                 {
+                    // 1. 교육청 이름 → 코드 변환
+                    const char* edu_code = get_edu_office_code(edu_office_name);
+                    if (!edu_code) {
+                        sprintf(response, "%s//%s", RESP_ERROR, "EDU_OFFICE_CODE_FAIL");
+                        send_data(client_socket, response, strlen(response));
+                        break;
+                    }
+                    // 2. 학교 이름 → 학교 코드 변환
+                    char school_code[16];
+                    if (!get_school_code(edu_code, school_name, school_code, sizeof(school_code), NEIS_API_KEY)) {
+                        sprintf(response, "%s//%s", RESP_ERROR, "SCHOOL_CODE_FAIL");
+                        send_data(client_socket, response, strlen(response));
+                        break;
+                    }
                     User user;
                     strncpy(user.id, id, MAX_ID_LEN - 1);
                     user.id[MAX_ID_LEN - 1] = '\0';
@@ -74,10 +89,10 @@ void handle_client(SOCKET client_socket) // 클라이언트와의 연결을 처�
                     strncpy(user.role, ROLE_GENERAL, MAX_ROLE_LEN - 1);
                     user.role[MAX_ROLE_LEN - 1] = '\0';
 
-                    strncpy(user.edu_office, edu_office, MAX_EDU_OFFICE_LEN - 1);
+                    strncpy(user.edu_office, edu_code, MAX_EDU_OFFICE_LEN - 1);
                     user.edu_office[MAX_EDU_OFFICE_LEN - 1] = '\0';
 
-                    strncpy(user.school_name, school_name, MAX_SCHOOL_NAME_LEN - 1);
+                    strncpy(user.school_name, school_code, MAX_SCHOOL_NAME_LEN - 1);
                     user.school_name[MAX_SCHOOL_NAME_LEN - 1] = '\0';
 
                     if (add_user(&user))

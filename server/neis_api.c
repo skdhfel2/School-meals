@@ -7,7 +7,7 @@
 #include <json-c/json.h> // JSON 파싱을 위한 json-c 라이브러리
 #include <time.h>
 
-#define NEIS_API_KEY "53ea0d0873e048e188a0b13834667795"                // NEIS API 키
+const char* NEIS_API_KEY = "53ea0d0873e048e188a0b13834667795";
 #define NEIS_API_URL "https://open.neis.go.kr/hub/mealServiceDietInfo" // NEIS API URL
 
 struct MemoryStruct
@@ -79,8 +79,6 @@ static bool perform_curl_request(const char *url, char **response)
 
     CURLcode res = curl_easy_perform(curl);
 
-    printf("기간 요청 URL: %s\n", url);
-    printf("응답 내용:\n%s\n", chunk.memory);
     curl_easy_cleanup(curl);
 
     if (res != CURLE_OK)
@@ -93,89 +91,262 @@ static bool perform_curl_request(const char *url, char **response)
     return true;
 }
 
-bool get_meal_from_neis(const char *edu_office, const char *school_name, const char *date, char *meal)
+bool get_meal_from_neis(const char *edu_office, const char *school_code, const char *date, char *meal)
 {
-    CURL *curl = curl_easy_init();
-    if (!curl)
-        return false;
-
-    char encoded_edu[128], encoded_school[128];
-    encode_params(curl, edu_office, school_name, encoded_edu, encoded_school, sizeof(encoded_edu));
-    curl_easy_cleanup(curl);
-
     char url[1024];
-    snprintf(url, sizeof(url), "%s?KEY=%s&Type=json&ATPT_OFCDC_SC_CODE=%s&SD_SCHUL_CODE=%s&MLSV_YMD=%s",
-             NEIS_API_URL, NEIS_API_KEY, encoded_edu, encoded_school, date);
+    snprintf(url, sizeof(url),
+             "%s?KEY=%s&Type=json&ATPT_OFCDC_SC_CODE=%s&SD_SCHUL_CODE=%s&MLSV_YMD=%s",
+             NEIS_API_URL, NEIS_API_KEY, edu_office, school_code, date);
+
+    printf("🔍 요청 URL: %s\n", url);
 
     char *response = NULL;
     if (!perform_curl_request(url, &response))
+    {
+        printf("❌ CURL 요청 실패\n");
         return false;
+    }
 
     struct json_object *json = json_tokener_parse(response);
     free(response);
 
     if (!json)
-        return false;
-
-    struct json_object *meal_service;
-    if (json_object_object_get_ex(json, "mealServiceDietInfo", &meal_service))
     {
-        struct json_object *row;
-        if (json_object_object_get_ex(meal_service, "row", &row) && json_object_is_type(row, json_type_array))
-        {
-            struct json_object *first_meal = json_object_array_get_idx(row, 0);
-            struct json_object *menu;
-            if (first_meal && json_object_object_get_ex(first_meal, "DDISH_NM", &menu))
-            {
-                strncpy(meal, json_object_get_string(menu), MAX_MEAL_LEN - 1);
-                json_object_put(json);
-                return true;
+        printf("❌ JSON 파싱 실패\n");
+        return false;
+    }
+
+    struct json_object *meal_service_array;
+    if (!json_object_object_get_ex(json, "mealServiceDietInfo", &meal_service_array))
+    {
+        printf("❌ mealServiceDietInfo 없음\n");
+        json_object_put(json);
+        return false;
+    }
+
+    // 배열인지 확인
+    if (!json_object_is_type(meal_service_array, json_type_array))
+    {
+        printf("❌ mealServiceDietInfo가 배열이 아님\n");
+        json_object_put(json);
+        return false;
+    }
+
+    // 두 번째 요소 (index = 1)에 row가 있음
+    struct json_object *second_obj = json_object_array_get_idx(meal_service_array, 1);
+
+    struct json_object *row;
+    if (!json_object_object_get_ex(second_obj, "row", &row))
+    {
+        printf("❌ row 없음\n");
+        json_object_put(json);
+        return false;
+    }
+
+    if (!json_object_is_type(row, json_type_array))
+    {
+        printf("❌ row가 배열이 아님\n");
+        json_object_put(json);
+        return false;
+    }
+
+    struct json_object *first_meal = json_object_array_get_idx(row, 0);
+    struct json_object *menu;
+    if (first_meal && json_object_object_get_ex(first_meal, "DDISH_NM", &menu))
+    {
+        const char *menu_str = json_object_get_string(menu);
+        char *temp = strdup(menu_str);
+        char *result = malloc(MAX_MEAL_LEN);
+        result[0] = '\0';
+        
+        // 날짜 포맷팅 (YYYYMMDD -> YYYY년 MM월 DD일)
+        char formatted_date[20];
+        snprintf(formatted_date, sizeof(formatted_date), "%c%c%c%c년 %c%c월 %c%c일",
+                 date[0], date[1], date[2], date[3],
+                 date[4], date[5], date[6], date[7]);
+        
+        // 제목과 날짜 추가
+        strcat(result, "\n🍱 오늘의 급식 메뉴\n\n");
+        strcat(result, "📅 ");
+        strcat(result, formatted_date);
+        strcat(result, "\n\n");
+        
+        // <br/> 태그로 분리
+        char *item = strtok(temp, "<br/>");
+        while (item) {
+            // 알레르기 정보 제거 (괄호 안의 내용)
+            char *paren = strchr(item, '(');
+            if (paren) {
+                *paren = '\0';
             }
+            
+            // 앞뒤 공백 제거
+            while (*item == ' ') item++;
+            char *end = item + strlen(item) - 1;
+            while (end > item && *end == ' ') {
+                *end = '\0';
+                end--;
+            }
+            
+            // 빈 문자열이 아닌 경우에만 추가
+            if (strlen(item) > 0) {
+                strcat(result, "• ");
+                strcat(result, item);
+                strcat(result, "\n");
+            }
+            
+            item = strtok(NULL, "<br/>");
         }
+        
+        strncpy(meal, result, MAX_MEAL_LEN - 1);
+        free(temp);
+        free(result);
+        
+        json_object_put(json);
+        printf("🍱 급식 메뉴:\n%s\n", meal);
+        return true;
+    }
+    else
+    {
+        printf("❌ DDISH_NM 없음\n");
     }
 
     json_object_put(json);
     return false;
 }
-
-bool get_meals_period_from_neis(const char *edu_office, const char *school_name,
+bool get_meals_period_from_neis(const char *edu_office, const char *school_code,
                                 const char *start_date, const char *end_date,
                                 char *meals_json)
 {
-    int days = days_between(start_date, end_date);
-    if (days > MAX_PERIOD_DAYS)
+    if (days_between(start_date, end_date) > 7)
+    {
+        printf("❌ 기간이 7일 초과\n");
+        strcpy(meals_json, "기간은 최대 7일까지 가능합니다.");
         return false;
-
-    CURL *curl = curl_easy_init();
-    if (!curl)
-        return false;
-
-    char encoded_edu[128], encoded_school[128];
-    encode_params(curl, edu_office, school_name, encoded_edu, encoded_school, sizeof(encoded_edu));
-    curl_easy_cleanup(curl);
+    }
 
     char url[1024];
-    snprintf(url, sizeof(url), "%s?KEY=%s&Type=json&ATPT_OFCDC_SC_CODE=%s&SD_SCHUL_CODE=%s&MLSV_FROM_YMD=%s&MLSV_TO_YMD=%s",
-             NEIS_API_URL, NEIS_API_KEY, encoded_edu, encoded_school, start_date, end_date);
+    snprintf(url, sizeof(url),
+             "%s?KEY=%s&Type=json&ATPT_OFCDC_SC_CODE=%s&SD_SCHUL_CODE=%s&MLSV_FROM_YMD=%s&MLSV_TO_YMD=%s",
+             NEIS_API_URL, NEIS_API_KEY, edu_office, school_code, start_date, end_date);
+
+    printf("🔍 요청 URL: %s\n", url);
 
     char *response = NULL;
     if (!perform_curl_request(url, &response))
+    {
+        printf("❌ CURL 요청 실패 (기간)\n");
         return false;
+    }
 
     struct json_object *json = json_tokener_parse(response);
     free(response);
 
     if (!json)
-        return false;
-
-    struct json_object *meal_service;
-    if (json_object_object_get_ex(json, "mealServiceDietInfo", &meal_service))
     {
-        strncpy(meals_json, json_object_to_json_string(meal_service), MAX_MEAL_LEN - 1);
-        json_object_put(json);
-        return true;
+        printf("❌ JSON 파싱 실패 (기간)\n");
+        return false;
     }
 
+    struct json_object *meal_service_array;
+    if (!json_object_object_get_ex(json, "mealServiceDietInfo", &meal_service_array))
+    {
+        printf("❌ mealServiceDietInfo 없음 (기간)\n");
+        json_object_put(json);
+        return false;
+    }
+
+    // 배열인지 확인
+    if (!json_object_is_type(meal_service_array, json_type_array))
+    {
+        printf("❌ mealServiceDietInfo가 배열이 아님 (기간)\n");
+        json_object_put(json);
+        return false;
+    }
+
+    // 두 번째 요소 (index = 1)에 row가 있음
+    struct json_object *second_obj = json_object_array_get_idx(meal_service_array, 1);
+    if (!second_obj)
+    {
+        printf("❌ mealServiceDietInfo[1] 없음 (기간)\n");
+        json_object_put(json);
+        return false;
+    }
+
+    struct json_object *row;
+    if (!json_object_object_get_ex(second_obj, "row", &row))
+    {
+        printf("❌ row 없음 (기간)\n");
+        json_object_put(json);
+        return false;
+    }
+
+    if (!json_object_is_type(row, json_type_array))
+    {
+        printf("❌ row가 배열이 아님 (기간)\n");
+        json_object_put(json);
+        return false;
+    }
+
+    char buffer[MAX_MEAL_LEN] = "";
+    strcat(buffer, "\n🍱 기간별 급식 메뉴\n\n");
+    
+    for (int i = 0; i < json_object_array_length(row); i++)
+    {
+        struct json_object *item = json_object_array_get_idx(row, i);
+        struct json_object *date_obj, *menu_obj;
+
+        const char *menu = "", *date = "";
+
+        if (json_object_object_get_ex(item, "MLSV_YMD", &date_obj))
+            date = json_object_get_string(date_obj);
+        if (json_object_object_get_ex(item, "DDISH_NM", &menu_obj))
+            menu = json_object_get_string(menu_obj);
+
+        // <br/> 태그로 분리
+        char *temp = strdup(menu);
+        char *item_str = strtok(temp, "<br/>");
+        char entry[512] = "";
+        
+        // 날짜 포맷팅 (YYYYMMDD -> YYYY년 MM월 DD일)
+        char formatted_date[20];
+        snprintf(formatted_date, sizeof(formatted_date), "%c%c%c%c년 %c%c월 %c%c일",
+                 date[0], date[1], date[2], date[3],
+                 date[4], date[5], date[6], date[7]);
+        
+        snprintf(entry, sizeof(entry), "📅 %s\n", formatted_date);
+        
+        while (item_str) {
+            // 알레르기 정보 제거 (괄호 안의 내용)
+            char *paren = strchr(item_str, '(');
+            if (paren) {
+                *paren = '\0';
+            }
+            
+            // 앞뒤 공백 제거
+            while (*item_str == ' ') item_str++;
+            char *end = item_str + strlen(item_str) - 1;
+            while (end > item_str && *end == ' ') {
+                *end = '\0';
+                end--;
+            }
+            
+            // 빈 문자열이 아닌 경우에만 추가
+            if (strlen(item_str) > 0) {
+                strcat(entry, "• ");
+                strcat(entry, item_str);
+                strcat(entry, "\n");
+            }
+            
+            item_str = strtok(NULL, "<br/>");
+        }
+        
+        strncat(buffer, entry, sizeof(buffer) - strlen(buffer) - 1);
+        strcat(buffer, "\n");  // 날짜 사이에 빈 줄 추가
+        free(temp);
+    }
+
+    strncpy(meals_json, buffer, MAX_MEAL_LEN - 1);
     json_object_put(json);
-    return false;
+    return true;
 }

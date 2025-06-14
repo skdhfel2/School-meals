@@ -4,6 +4,7 @@
 #include "protocol.h"
 #include "db.h"
 #include <winsock2.h>
+#include "neis_api.h"
 // 충분한 응답 버퍼 확보
 #define RESPONSE_SIZE 2048
 

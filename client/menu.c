@@ -15,15 +15,8 @@ void print_login_menu(void) {
 void print_general_menu(void) {
     printf("\n=== 일반 사용자 메뉴 ===\n");
     printf("1. 급식 조회\n");
-    printf("   ├─ 단일 급식 조회 (YYYYMMDD)\n");
-    printf("   └─ 기간별 급식 조회 (YYYYMMDD-YYYYMMDD, 최대 7일)\n");
     printf("2. 다른 학교 급식 조회\n");
-    printf("   ├─ 단일 급식 조회 (시도교육청, 학교명, YYYYMMDD)\n");
-    printf("   └─ 기간별 급식 조회 (시도교육청, 학교명, YYYYMMDD-YYYYMMDD)\n");
     printf("3. 사용자 관리\n");
-    printf("   ├─ 사용자 추가 (ID, PW, 시도교육청, 학교명)\n");
-    printf("   ├─ 사용자 수정 (ID, PW, 시도교육청, 학교명)\n");
-    printf("   └─ 사용자 삭제 (ID 입력)\n");
     printf("4. 로그아웃\n");
     printf("5. 종료\n");
     printf("선택: ");
@@ -32,15 +25,8 @@ void print_general_menu(void) {
 void print_parent_menu(void) {
     printf("\n=== 부모 사용자 메뉴 ===\n");
     printf("1. 자녀 급식 조회\n");
-    printf("   ├─ 단일 급식 조회 (YYYYMMDD)\n");
-    printf("   └─ 기간별 급식 조회 (YYYYMMDD-YYYYMMDD, 최대 7일)\n");
     printf("2. 다른 학교 급식 조회\n");
-    printf("   ├─ 단일 급식 조회 (시도교육청, 학교명, YYYYMMDD)\n");
-    printf("   └─ 기간별 급식 조회 (시도교육청, 학교명, YYYYMMDD-YYYYMMDD)\n");
     printf("3. 자녀 관리\n");
-    printf("   ├─ 자녀 추가 (ID, PW, 시도교육청, 학교명)\n");
-    printf("   ├─ 자녀 삭제 (ID 입력)\n");
-    printf("   └─ 자녀 조회 (등록된 정보 전체 출력)\n");
     printf("4. 로그아웃\n");
     printf("5. 종료\n");
     printf("선택: ");

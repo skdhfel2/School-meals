@@ -16,13 +16,15 @@ const char *valid_edu_offices[] = {
     "서울특별시교육청", "부산광역시교육청", "대구광역시교육청", "인천광역시교육청",
     "광주광역시교육청", "대전광역시교육청", "울산광역시교육청", "세종특별자치시교육청",
     "경기도교육청", "강원도교육청", "충청북도교육청", "충청남도교육청",
-    "전라북도교육청", "전라남도교육청", "경상북도교육청", "경상남도교육청", "제주특별자치도교육청"
-};
-#define EDU_OFFICE_COUNT (sizeof(valid_edu_offices)/sizeof(valid_edu_offices[0]))
+    "전라북도교육청", "전라남도교육청", "경상북도교육청", "경상남도교육청", "제주특별자치도교육청"};
+#define EDU_OFFICE_COUNT (sizeof(valid_edu_offices) / sizeof(valid_edu_offices[0]))
 
-bool is_valid_edu_office(const char *name) {
-    for (int i = 0; i < EDU_OFFICE_COUNT; i++) {
-        if (strcmp(name, valid_edu_offices[i]) == 0) return true;
+bool is_valid_edu_office(const char *name)
+{
+    for (int i = 0; i < EDU_OFFICE_COUNT; i++)
+    {
+        if (strcmp(name, valid_edu_offices[i]) == 0)
+            return true;
     }
     return false;
 }
@@ -54,6 +56,7 @@ bool handle_login(const char *id, const char *pw, char *response)
         strncpy(current_user_id, id, MAX_ID_LEN - 1);
         current_user_id[MAX_ID_LEN - 1] = '\0';
 
+        char *message = strtok(NULL, CMD_DELIMITER); // "로그인 성공" → 사용 X, 건너뜀
         char *edu_office = strtok(NULL, CMD_DELIMITER);
         char *school_name = strtok(NULL, CMD_DELIMITER);
         char *role = strtok(NULL, CMD_DELIMITER);
@@ -78,7 +81,8 @@ bool handle_login(const char *id, const char *pw, char *response)
 
 bool handle_register(const char *id, const char *pw, const char *edu_office, const char *school_name, char *response)
 {
-    if (!is_valid_edu_office(edu_office)) {
+    if (!is_valid_edu_office(edu_office))
+    {
         strcpy(response, "올바른 교육청 이름을 입력하세요.");
         return false;
     }
@@ -137,9 +141,9 @@ bool get_meal_from_neis(const char *edu_office, const char *school_name, const c
 bool get_meals_period_from_neis(const char *edu_office, const char *school_name, const char *start_date, const char *end_date, char *response)
 {
     char buffer[BUFFER_SIZE];
-    snprintf(buffer, sizeof(buffer), "%s%s%s%s%s%s%s%s%s",
+    snprintf(buffer, sizeof(buffer), "%s%s%s%s%s%s%s-%s",
              CMD_GET_MULTI_MEAL, CMD_DELIMITER, edu_office, CMD_DELIMITER, school_name,
-             CMD_DELIMITER, start_date, CMD_DELIMITER, end_date);
+             CMD_DELIMITER, start_date, end_date);
 
     if (!send_data(client_socket, buffer, strlen(buffer)))
     {
@@ -275,7 +279,8 @@ bool handle_delete_user(const char *id, char *response)
     return receive_response(response);
 }
 
-void print_edu_office_guide() {
+void print_edu_office_guide()
+{
     printf("※ 교육청 이름은 아래 중 하나를 정확히 입력해야 합니다.\n");
     printf("서울특별시교육청, 부산광역시교육청, 대구광역시교육청, 인천광역시교육청,\n");
     printf("광주광역시교육청, 대전광역시교육청, 울산광역시교육청, 세종특별자치시교육청,\n");

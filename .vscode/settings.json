@@ -9,7 +9,8 @@
     "curl.h": "c",
     "json_object.h": "c",
     "sqlite3.h": "c",
-    "protocol.h": "c"
+    "protocol.h": "c",
+    "db_handler.h": "c"
   },
   // 기본 터미널 일단 제거
   "terminal.integrated.defaultProfile.windows": null,

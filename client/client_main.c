@@ -12,32 +12,29 @@
 #define SERVER_PORT 8080
 #define BUFFER_SIZE 1024
 
-int connect_to_server(void)
+// 전역 변수 선언
+char current_user_id[MAX_ID_LEN];
+char current_user_edu_office[MAX_EDU_OFFICE_LEN];
+char current_user_school[MAX_SCHOOL_NAME_LEN];
+
+bool connect_to_server(SOCKET sock, const char *ip, int port)
 {
     WSADATA wsaData;
     int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (result != 0)
     {
         fprintf(stderr, "WSAStartup failed: %d\n", result);
-        return -1;
-    }
-
-    SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock == INVALID_SOCKET)
-    {
-        fprintf(stderr, "Socket creation failed: %d\n", WSAGetLastError());
-        WSACleanup();
-        return -1;
+        return false;
     }
 
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(SERVER_PORT);
+    server_addr.sin_port = htons(port);
 
-    if (inet_pton(AF_INET, SERVER_IP, &server_addr.sin_addr) <= 0)
+    if (inet_pton(AF_INET, ip, &server_addr.sin_addr) <= 0)
     {
         perror("Invalid address");
-        return -1;
+        return false;
     }
 
     if (connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
@@ -45,10 +42,10 @@ int connect_to_server(void)
         perror("Connection failed");
         closesocket(sock);
         WSACleanup();
-        return -1;
+        return false;
     }
 
-    return sock;
+    return true;
 }
 
 void send_command(SOCKET sock, const char *cmd)
@@ -59,7 +56,15 @@ void send_command(SOCKET sock, const char *cmd)
 void receive_response(SOCKET sock, char *buffer)
 {
     memset(buffer, 0, BUFFER_SIZE);
-    recv(sock, buffer, BUFFER_SIZE - 1, 0);
+    int bytes_received = recv(sock, buffer, BUFFER_SIZE - 1, 0);
+    if (bytes_received <= 0)
+    {
+        strcpy(buffer, "0//서버 응답 수신 실패//");
+    }
+    else
+    {
+        buffer[bytes_received] = '\0';
+    }
 }
 
 void handle_register_general(SOCKET sock)
@@ -118,8 +123,10 @@ void handle_login(int sock)
 
     printf("아이디: ");
     scanf("%s", id);
+    clear_input_buffer();
     printf("비밀번호: ");
     scanf("%s", pw);
+    clear_input_buffer();
 
     char cmd[BUFFER_SIZE];
     snprintf(cmd, sizeof(cmd), "%s//%s//%s",
@@ -128,57 +135,149 @@ void handle_login(int sock)
     send_command(sock, cmd);
     receive_response(sock, buffer);
 
-    printf("서버 응답: %s\n", buffer);
+    printf("서버 응답 원본: %s\n", buffer); // 디버깅용
+
+    // 응답 파싱
+    char *status = strtok(buffer, "//");
+    char *msg = strtok(NULL, "//");
+    char *edu_office = strtok(NULL, "//");
+    char *school_name = strtok(NULL, "//");
+
+    printf("파싱 결과:\n"); // 디버깅용
+    printf("status: %s\n", status);
+    printf("msg: %s\n", msg);
+    printf("edu_office: %s\n", edu_office);
+    printf("school_name: %s\n", school_name);
+
+    if (status && atoi(status) == 1)
+    {
+        // 로그인 성공 시 사용자 정보 저장
+        strncpy(current_user_id, id, MAX_ID_LEN - 1);
+        current_user_id[MAX_ID_LEN - 1] = '\0';
+
+        if (edu_office)
+        {
+            strncpy(current_user_edu_office, edu_office, MAX_EDU_OFFICE_LEN - 1);
+            current_user_edu_office[MAX_EDU_OFFICE_LEN - 1] = '\0';
+        }
+
+        if (school_name)
+        {
+            strncpy(current_user_school, school_name, MAX_SCHOOL_NAME_LEN - 1);
+            current_user_school[MAX_SCHOOL_NAME_LEN - 1] = '\0';
+        }
+
+        printf("저장된 정보:\n"); // 디버깅용
+        printf("current_user_id: %s\n", current_user_id);
+        printf("current_user_edu_office: %s\n", current_user_edu_office);
+        printf("current_user_school: %s\n", current_user_school);
+
+        printf("로그인 성공: %s\n", msg);
+    }
+    else
+    {
+        printf("로그인 실패: %s\n", msg ? msg : "알 수 없는 오류");
+    }
 }
 
 void handle_meal(int sock)
 {
-    char edu_office[MAX_EDU_OFFICE_LEN];
-    char school_name[MAX_SCHOOL_NAME_LEN];
     char date[9];
     char buffer[BUFFER_SIZE];
 
-    printf("교육청: ");
-    scanf("%s", edu_office);
-    printf("학교명: ");
-    scanf("%s", school_name);
     printf("날짜 (YYYYMMDD): ");
     scanf("%s", date);
 
     char cmd[BUFFER_SIZE];
     snprintf(cmd, sizeof(cmd), "%s//%s//%s//%s",
-             CMD_MEAL, edu_office, school_name, date);
+             CMD_GET_MEAL, current_user_edu_office, current_user_school, date);
 
     send_command(sock, cmd);
     receive_response(sock, buffer);
 
-    printf("서버 응답: %s\n", buffer);
+    // 응답 파싱
+    char *status = strtok(buffer, "//");
+    char *msg = strtok(NULL, "//");
+    char *meal = strtok(NULL, ""); // 나머지를 한꺼번에 받음
+
+    if (status && atoi(status) == 1 && meal)
+    {
+        printf("\n🍱 급식 메뉴:\n%s\n", meal); // 줄바꿈 포함 그대로 출력
+    }
+    else
+    {
+        printf("급식 정보를 가져오는데 실패했습니다: %s\n", msg ? msg : "알 수 없음");
+    }
 }
 
 void handle_multi_meal(int sock)
 {
-    char edu_office[MAX_EDU_OFFICE_LEN];
-    char school_name[MAX_SCHOOL_NAME_LEN];
-    char start_date[9], end_date[9];
+    char start_date[10], end_date[10];  // 8자리 날짜 + null 문자
     char buffer[BUFFER_SIZE];
+    int choice;
+    int i;
 
-    printf("교육청: ");
-    scanf("%s", edu_office);
-    printf("학교명: ");
-    scanf("%s", school_name);
+    printf("\n[기간별 급식 조회]\n");
+    printf("※ 조회 가능 기간: 최대 7일\n");
+    printf("※ 날짜 형식: YYYYMMDD (예: 20240301)\n\n");
+    
+    // 이전 입력의 개행 문자 제거
+    while (getchar() != '\n')
+        ;
+    
     printf("시작 날짜 (YYYYMMDD): ");
-    scanf("%s", start_date);
+    for (i = 0; i < 8; i++) {
+        int c = getchar();
+        if (c == '\n' || c == EOF) {
+            printf("❌ 날짜 형식이 올바르지 않습니다. YYYYMMDD 형식으로 입력해주세요.\n");
+            return;
+        }
+        start_date[i] = c;
+    }
+    start_date[8] = '\0';
+    while (getchar() != '\n');  // 남은 입력 버퍼 비우기
+    
     printf("종료 날짜 (YYYYMMDD): ");
-    scanf("%s", end_date);
+    for (i = 0; i < 8; i++) {
+        int c = getchar();
+        if (c == '\n' || c == EOF) {
+            printf("❌ 날짜 형식이 올바르지 않습니다. YYYYMMDD 형식으로 입력해주세요.\n");
+            return;
+        }
+        end_date[i] = c;
+    }
+    end_date[8] = '\0';
+    while (getchar() != '\n');  // 남은 입력 버퍼 비우기
+
+    // 날짜 유효성 검증
+    int year, month, day;
+    if (sscanf(start_date, "%4d%2d%2d", &year, &month, &day) != 3 ||
+        sscanf(end_date, "%4d%2d%2d", &year, &month, &day) != 3)
+    {
+        printf("❌ 날짜 형식이 올바르지 않습니다. YYYYMMDD 형식으로 입력해주세요.\n");
+        return;
+    }
 
     char cmd[BUFFER_SIZE];
     snprintf(cmd, sizeof(cmd), "%s//%s//%s//%s-%s",
-             CMD_MULTI_MEAL, edu_office, school_name, start_date, end_date);
+             CMD_GET_MULTI_MEAL, current_user_edu_office, current_user_school, start_date, end_date);
 
     send_command(sock, cmd);
     receive_response(sock, buffer);
 
-    printf("서버 응답: %s\n", buffer);
+    // 응답 파싱
+    char *status = strtok(buffer, "//");
+    char *msg = strtok(NULL, "//");
+    char *meals = strtok(NULL, ""); // 나머지를 한꺼번에 받음
+
+    if (status && atoi(status) == 1 && meals)
+    {
+        printf("\n🍱 기간별 급식 메뉴:\n%s\n", meals); // 줄바꿈 포함 그대로 출력
+    }
+    else
+    {
+        printf("급식 정보를 가져오는데 실패했습니다: %s\n", msg ? msg : "알 수 없음");
+    }
 }
 
 void handle_other_meal(int sock)
@@ -254,9 +353,17 @@ void show_meal_menu(void)
 
 int main()
 {
-    SOCKET sock = connect_to_server();
-    if (sock < 0)
+    SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock == INVALID_SOCKET)
     {
+        fprintf(stderr, "Socket creation failed: %d\n", WSAGetLastError());
+        return 1;
+    }
+
+    if (!connect_to_server(sock, SERVER_IP, SERVER_PORT))
+    {
+        closesocket(sock);
+        WSACleanup();
         return 1;
     }
 
@@ -265,6 +372,8 @@ int main()
     {
         show_main_menu();
         scanf("%d", &choice);
+        while (getchar() != '\n')
+            ;
 
         switch (choice)
         {
@@ -280,6 +389,8 @@ int main()
             {
                 show_meal_menu();
                 scanf("%d", &choice);
+                while (getchar() != '\n')
+                    ;
 
                 switch (choice)
                 {

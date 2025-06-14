@@ -12,9 +12,13 @@ void clear_input_buffer() {
 // 안전한 문자열 입력 받기
 void safe_input(char *buffer, size_t size) {
     if (fgets(buffer, size, stdin) != NULL) {
-        buffer[strcspn(buffer, "\n")] = 0;
+        size_t len = strlen(buffer);
+        if (len > 0 && buffer[len - 1] == '\n') {
+            buffer[len - 1] = '\0';  // 줄바꿈 제거
+        } else {
+            clear_input_buffer();   // 입력이 길어져 줄바꿈이 안 들어간 경우만 처리
+        }
     }
-    clear_input_buffer();
 }
 
 // 날짜 형식 검증 (YYYYMMDD)
