@@ -2,6 +2,7 @@
 #include "protocol.h"
 #include "handlers.h"
 #include "menu.h"
+#include "input_util.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -45,13 +46,10 @@ void handle_parent_menu(int choice)
         }
         else if (sub_choice == 2)
         {
-            printf("시작 날짜 (YYYYMMDD): ");
-            fgets(date, sizeof(date), stdin);
-            date[strcspn(date, "\n")] = 0;
-
-            printf("종료 날짜 (YYYYMMDD): ");
-            fgets(end_date, sizeof(end_date), stdin);
-            end_date[strcspn(end_date, "\n")] = 0;
+            if (!get_period_input(date, end_date, sizeof(date)))
+            {
+                return;
+            }
 
             if (get_child_meals_period(current_user_id, child_id, date, end_date, response))
             {
@@ -96,13 +94,10 @@ void handle_parent_menu(int choice)
         }
         else if (sub_choice == 2)
         {
-            printf("시작 날짜 (YYYYMMDD): ");
-            fgets(date, sizeof(date), stdin);
-            date[strcspn(date, "\n")] = 0;
-
-            printf("종료 날짜 (YYYYMMDD): ");
-            fgets(end_date, sizeof(end_date), stdin);
-            end_date[strcspn(end_date, "\n")] = 0;
+            if (!get_period_input(date, end_date, sizeof(date)))
+            {
+                return;
+            }
 
             if (get_meals_period_from_neis(edu_office, school_name, date, end_date, response))
             {

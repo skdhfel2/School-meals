@@ -330,8 +330,19 @@ DWORD WINAPI handle_client(LPVOID arg)
         {
             if (edu_office && school_name && date)
             {
+                // 학교 코드 조회
+                char edu_code[10] = {0};
+                char school_code[20] = {0};
+                
+                if (!resolve_school_code(school_name, edu_code, school_code))
+                {
+                    printf("❌ 학교 정보를 찾을 수 없습니다: %s\n", school_name);
+                    send_response(client_socket, RESP_ERROR, "학교 정보를 찾을 수 없습니다.", "");
+                    continue;
+                }
+
                 char meal[MAX_MEAL_LEN] = {0};
-                if (get_meal_from_neis(edu_office, school_name, date, meal))
+                if (get_meal_from_neis(edu_code, school_code, date, meal))
                 {
                     send_response(client_socket, RESP_SUCCESS, "급식 정보 조회 성공", meal);
                 }
@@ -356,8 +367,19 @@ DWORD WINAPI handle_client(LPVOID arg)
                 }
                 else
                 {
+                    // 학교 코드 조회
+                    char edu_code[10] = {0};
+                    char school_code[20] = {0};
+                    
+                    if (!resolve_school_code(school_name, edu_code, school_code))
+                    {
+                        printf("❌ 학교 정보를 찾을 수 없습니다: %s\n", school_name);
+                        send_response(client_socket, RESP_ERROR, "학교 정보를 찾을 수 없습니다.", "");
+                        continue;
+                    }
+
                     char meals[MAX_MEAL_LEN] = {0};
-                    if (get_meals_period_from_neis(edu_office, school_name, start_date, end_date, meals))
+                    if (get_meals_period_from_neis(edu_code, school_code, start_date, end_date, meals))
                     {
                         send_response(client_socket, RESP_SUCCESS, "기간 급식 정보 조회 성공", meals);
                     }

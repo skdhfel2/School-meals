@@ -2,6 +2,7 @@
 #include "protocol.h"
 #include "handlers.h"
 #include "menu.h"
+#include "input_util.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -52,29 +53,10 @@ void handle_general_menu(int choice)
         }
         else if (sub_choice == 2)
         {
-            printf("시작 날짜 (YYYYMMDD): ");
-            for (i = 0; i < 8; i++) {
-                int c = getchar();
-                if (c == '\n' || c == EOF) {
-                    printf("❌ 날짜 형식이 올바르지 않습니다. YYYYMMDD 형식으로 입력해주세요.\n");
-                    return;
-                }
-                date[i] = c;
+            if (!get_period_input(date, end_date, sizeof(date)))
+            {
+                return;
             }
-            date[8] = '\0';
-            while (getchar() != '\n');  // 남은 입력 버퍼 비우기
-
-            printf("종료 날짜 (YYYYMMDD): ");
-            for (i = 0; i < 8; i++) {
-                int c = getchar();
-                if (c == '\n' || c == EOF) {
-                    printf("❌ 날짜 형식이 올바르지 않습니다. YYYYMMDD 형식으로 입력해주세요.\n");
-                    return;
-                }
-                end_date[i] = c;
-            }
-            end_date[8] = '\0';
-            while (getchar() != '\n');  // 남은 입력 버퍼 비우기
 
             if (get_meals_period_from_neis(current_user_edu_office, current_user_school,
                                            date, end_date, response))
@@ -128,29 +110,10 @@ void handle_general_menu(int choice)
         }
         else if (sub_choice == 2)
         {
-            printf("시작 날짜 (YYYYMMDD): ");
-            for (i = 0; i < 8; i++) {
-                int c = getchar();
-                if (c == '\n' || c == EOF) {
-                    printf("❌ 날짜 형식이 올바르지 않습니다. YYYYMMDD 형식으로 입력해주세요.\n");
-                    return;
-                }
-                date[i] = c;
+            if (!get_period_input(date, end_date, sizeof(date)))
+            {
+                return;
             }
-            date[8] = '\0';
-            while (getchar() != '\n');  // 남은 입력 버퍼 비우기
-
-            printf("종료 날짜 (YYYYMMDD): ");
-            for (i = 0; i < 8; i++) {
-                int c = getchar();
-                if (c == '\n' || c == EOF) {
-                    printf("❌ 날짜 형식이 올바르지 않습니다. YYYYMMDD 형식으로 입력해주세요.\n");
-                    return;
-                }
-                end_date[i] = c;
-            }
-            end_date[8] = '\0';
-            while (getchar() != '\n');  // 남은 입력 버퍼 비우기
 
             if (get_meals_period_from_neis(edu_office, school_name, date, end_date, response))
             {

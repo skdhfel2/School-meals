@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -I. -I../include -Wall
 LDFLAGS = -lws2_32
 
-SRCS = client.c network.c menu.c handlers.c menu_general.c menu_parent.c
+SRCS = client.c network.c menu.c handlers.c menu_general.c menu_parent.c input_util.c
 OBJS = $(SRCS:.c=.o)
 TARGET = client.exe
 

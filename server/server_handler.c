@@ -121,8 +121,20 @@ void handle_other_meal(int client_socket, char *edu_office, char *school_name, c
 {
     char response[RESPONSE_SIZE] = {0};
     char meal[MAX_MEAL_LEN] = {0};
+    
+    // 학교 코드 조회
+    char edu_code[10] = {0};
+    char school_code[20] = {0};
+    
+    if (!resolve_school_code(school_name, edu_code, school_code))
+    {
+        printf("❌ 학교 정보를 찾을 수 없습니다: %s\n", school_name);
+        sprintf(response, "%s//%s", RESP_ERROR, "학교 정보를 찾을 수 없습니다.");
+        send(client_socket, response, strlen(response), 0);
+        return;
+    }
 
-    if (get_meal_from_neis(edu_office, school_name, date, meal))
+    if (get_meal_from_neis(edu_code, school_code, date, meal))
     {
         snprintf(response, RESPONSE_SIZE, RESP_OTHER_MEAL_FORMAT, RESP_SUCCESS, meal); // 다른 학교 급식 정보를 포함한 응답
     }
@@ -143,7 +155,19 @@ void handle_multi_other_meal(int client_socket, char *edu_office, char *school_n
     char response[RESPONSE_SIZE] = {0};
     char meals_json[MAX_MEAL_LEN] = {0};
 
-    if (get_meals_period_from_neis(edu_office, school_name, start_date, end_date, meals_json)) // NEIS API를 통해 여러 날의 급식 정보를 조회
+    // 학교 코드 조회
+    char edu_code[10] = {0};
+    char school_code[20] = {0};
+    
+    if (!resolve_school_code(school_name, edu_code, school_code))
+    {
+        printf("❌ 학교 정보를 찾을 수 없습니다: %s\n", school_name);
+        sprintf(response, "%s//%s", RESP_ERROR, "학교 정보를 찾을 수 없습니다.");
+        send(client_socket, response, strlen(response), 0);
+        return;
+    }
+
+    if (get_meals_period_from_neis(edu_code, school_code, start_date, end_date, meals_json)) // NEIS API를 통해 여러 날의 급식 정보를 조회
     {
         snprintf(response, RESPONSE_SIZE, RESP_MULTI_OTHER_MEAL_FORMAT, RESP_SUCCESS, meals_json); // 여러 날의 다른 급식 정보를 포함한 응답
     }

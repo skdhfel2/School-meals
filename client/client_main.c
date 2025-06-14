@@ -1,4 +1,6 @@
 #include "common.h"
+#include "protocol.h"
+#include "input_util.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,7 +8,6 @@
 #include <winsock2.h>
 #include <windows.h>
 #include <ws2tcpip.h>
-#include "protocol.h"
 
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 8080
@@ -214,47 +215,9 @@ void handle_multi_meal(int sock)
 {
     char start_date[10], end_date[10];  // 8자리 날짜 + null 문자
     char buffer[BUFFER_SIZE];
-    int choice;
-    int i;
 
-    printf("\n[기간별 급식 조회]\n");
-    printf("※ 조회 가능 기간: 최대 7일\n");
-    printf("※ 날짜 형식: YYYYMMDD (예: 20240301)\n\n");
-    
-    // 이전 입력의 개행 문자 제거
-    while (getchar() != '\n')
-        ;
-    
-    printf("시작 날짜 (YYYYMMDD): ");
-    for (i = 0; i < 8; i++) {
-        int c = getchar();
-        if (c == '\n' || c == EOF) {
-            printf("❌ 날짜 형식이 올바르지 않습니다. YYYYMMDD 형식으로 입력해주세요.\n");
-            return;
-        }
-        start_date[i] = c;
-    }
-    start_date[8] = '\0';
-    while (getchar() != '\n');  // 남은 입력 버퍼 비우기
-    
-    printf("종료 날짜 (YYYYMMDD): ");
-    for (i = 0; i < 8; i++) {
-        int c = getchar();
-        if (c == '\n' || c == EOF) {
-            printf("❌ 날짜 형식이 올바르지 않습니다. YYYYMMDD 형식으로 입력해주세요.\n");
-            return;
-        }
-        end_date[i] = c;
-    }
-    end_date[8] = '\0';
-    while (getchar() != '\n');  // 남은 입력 버퍼 비우기
-
-    // 날짜 유효성 검증
-    int year, month, day;
-    if (sscanf(start_date, "%4d%2d%2d", &year, &month, &day) != 3 ||
-        sscanf(end_date, "%4d%2d%2d", &year, &month, &day) != 3)
+    if (!get_period_input(start_date, end_date, sizeof(start_date)))
     {
-        printf("❌ 날짜 형식이 올바르지 않습니다. YYYYMMDD 형식으로 입력해주세요.\n");
         return;
     }
 
@@ -315,10 +278,11 @@ void handle_multi_other_meal(int sock)
     scanf("%s", edu_office);
     printf("학교명: ");
     scanf("%s", school_name);
-    printf("시작 날짜 (YYYYMMDD): ");
-    scanf("%s", start_date);
-    printf("종료 날짜 (YYYYMMDD): ");
-    scanf("%s", end_date);
+
+    if (!get_period_input(start_date, end_date, sizeof(start_date)))
+    {
+        return;
+    }
 
     char cmd[BUFFER_SIZE];
     snprintf(cmd, sizeof(cmd), "%s//%s//%s//%s-%s",
