@@ -148,20 +148,42 @@ DWORD WINAPI handle_client(LPVOID arg)
         }
         else if (strcmp(cmd, CMD_UPDATE) == 0)
         {
-            if (id && edu_office && school_name)
+            if (id && pw && edu_office && school_name)
             {
-                User user = {0};
-                strncpy(user.id, id, MAX_ID_LEN - 1);
-                strncpy(user.edu_office, edu_office, MAX_EDU_OFFICE_LEN - 1);
-                strncpy(user.school_name, school_name, MAX_SCHOOL_NAME_LEN - 1);
-
-                if (update_user(&user))
+                // 학교 코드 변환
+                char edu_code[10] = {0};
+                char school_code[20] = {0};
+                if (!resolve_school_code(school_name, edu_code, school_code))
                 {
-                    send_response(client_socket, RESP_SUCCESS, RESP_UPDATE_OK, "");
+                    send_response(client_socket, RESP_ERROR, "학교 정보를 찾을 수 없습니다.", "");
                 }
                 else
                 {
-                    send_response(client_socket, RESP_ERROR, RESP_DB_ERROR, "");
+                    User user = {0};
+                    strncpy(user.id, id, MAX_ID_LEN - 1);
+                    strncpy(user.pw, pw, MAX_PW_LEN - 1);
+                    user.pw[MAX_PW_LEN - 1] = '\0';
+                    strncpy(user.edu_office, edu_code, MAX_EDU_OFFICE_LEN - 1);
+                    user.edu_office[MAX_EDU_OFFICE_LEN - 1] = '\0';
+                    strncpy(user.school_name, school_code, MAX_SCHOOL_NAME_LEN - 1);
+                    user.school_name[MAX_SCHOOL_NAME_LEN - 1] = '\0';
+
+                    // 이름, 역할은 기존 값 유지
+                    User old_user = {0};
+                    get_user(id, &old_user);
+                    strncpy(user.name, old_user.name, MAX_NAME_LEN - 1);
+                    user.name[MAX_NAME_LEN - 1] = '\0';
+                    strncpy(user.role, old_user.role, MAX_ROLE_LEN - 1);
+                    user.role[MAX_ROLE_LEN - 1] = '\0';
+
+                    if (update_user(&user))
+                    {
+                        send_response(client_socket, RESP_SUCCESS, RESP_UPDATE_OK, "");
+                    }
+                    else
+                    {
+                        send_response(client_socket, RESP_ERROR, RESP_DB_ERROR, "");
+                    }
                 }
             }
             else
