@@ -121,11 +121,11 @@ void handle_other_meal(int client_socket, char *edu_office, char *school_name, c
 {
     char response[RESPONSE_SIZE] = {0};
     char meal[MAX_MEAL_LEN] = {0};
-    
+
     // 학교 코드 조회
     char edu_code[10] = {0};
     char school_code[20] = {0};
-    
+
     if (!resolve_school_code(school_name, edu_code, school_code))
     {
         printf("❌ 학교 정보를 찾을 수 없습니다: %s\n", school_name);
@@ -158,7 +158,7 @@ void handle_multi_other_meal(int client_socket, char *edu_office, char *school_n
     // 학교 코드 조회
     char edu_code[10] = {0};
     char school_code[20] = {0};
-    
+
     if (!resolve_school_code(school_name, edu_code, school_code))
     {
         printf("❌ 학교 정보를 찾을 수 없습니다: %s\n", school_name);

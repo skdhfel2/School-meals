@@ -1,10 +1,17 @@
 #include "menu.h"
+#include "common.h"
 #include "handlers.h"
 #include <stdio.h>
 #include <string.h>
 
+extern char current_user_id[MAX_ID_LEN];
+extern char current_user_role[MAX_ROLE_LEN];
+extern char current_user_edu_office[MAX_EDU_OFFICE_LEN];
+extern char current_user_school[MAX_SCHOOL_NAME_LEN];
+
 // 메뉴 출력 함수
-void print_login_menu(void) {
+void print_login_menu(void)
+{
     printf("\n=== 로그인 ===\n");
     printf("1. 로그인\n");
     printf("2. 회원가입\n");
@@ -12,7 +19,8 @@ void print_login_menu(void) {
     printf("선택: ");
 }
 
-void print_general_menu(void) {
+void print_general_menu(void)
+{
     printf("\n=== 일반 사용자 메뉴 ===\n");
     printf("1. 급식 조회\n");
     printf("2. 다른 학교 급식 조회\n");
@@ -22,7 +30,8 @@ void print_general_menu(void) {
     printf("선택: ");
 }
 
-void print_parent_menu(void) {
+void print_parent_menu(void)
+{
     printf("\n=== 부모 사용자 메뉴 ===\n");
     printf("1. 자녀 급식 조회\n");
     printf("2. 다른 학교 급식 조회\n");
@@ -33,14 +42,16 @@ void print_parent_menu(void) {
 }
 
 // 서브메뉴 출력 함수
-void print_meal_query_menu(void) {
+void print_meal_query_menu(void)
+{
     printf("\n=== 급식 조회 ===\n");
     printf("1. 단일 급식 조회\n");
     printf("2. 기간별 급식 조회\n");
     printf("선택: ");
 }
 
-void print_user_management_menu(void) {
+void print_user_management_menu(void)
+{
     printf("\n=== 사용자 관리 ===\n");
     printf("1. 사용자 추가\n");
     printf("2. 사용자 수정\n");
@@ -48,7 +59,8 @@ void print_user_management_menu(void) {
     printf("선택: ");
 }
 
-void print_child_management_menu(void) {
+void print_child_management_menu(void)
+{
     printf("\n=== 자녀 관리 ===\n");
     printf("1. 자녀 추가\n");
     printf("2. 자녀 삭제\n");
@@ -57,58 +69,103 @@ void print_child_management_menu(void) {
 }
 
 // 메뉴 입력 처리 함수
-void handle_login_menu_input(int choice) {
+void handle_login_menu_input(int choice)
+{
     char response[BUFFER_SIZE];
     char id[MAX_ID_LEN], pw[MAX_PW_LEN];
+    char name[MAX_NAME_LEN];
     char edu_office[MAX_EDU_OFFICE_LEN], school_name[MAX_SCHOOL_NAME_LEN];
 
-    switch (choice) {
-        case 1: // 로그인
-            printf("아이디: ");
-            fgets(id, sizeof(id), stdin);
-            id[strcspn(id, "\n")] = 0;
+    switch (choice)
+    {
+    case 1: // 로그인
+        printf("아이디: ");
+        fgets(id, sizeof(id), stdin);
+        id[strcspn(id, "\n")] = 0;
 
-            printf("비밀번호: ");
-            fgets(pw, sizeof(pw), stdin);
-            pw[strcspn(pw, "\n")] = 0;
+        printf("비밀번호: ");
+        fgets(pw, sizeof(pw), stdin);
+        pw[strcspn(pw, "\n")] = 0;
 
-            if (handle_login(id, pw, response)) {
-                printf("로그인 성공: %s\n", response);
-            } else {
-                printf("로그인 실패: %s\n", response);
+        if (handle_login(id, pw, response))
+        {
+            printf("✅ 로그인 성공\n");
+
+            // 이후 사용자 역할에 따라 메뉴 진입
+            while (1)
+            {
+                if (strcmp(current_user_role, "PARENT") == 0)
+                {
+                    print_parent_menu();
+                    int menu_choice;
+                    scanf("%d", &menu_choice);
+                    getchar();
+
+                    if (menu_choice == 5)
+                        break;
+                    handle_parent_menu_input(menu_choice);
+                }
+                else
+                {
+                    print_general_menu();
+                    int menu_choice;
+                    scanf("%d", &menu_choice);
+                    getchar();
+
+                    if (menu_choice == 5)
+                        break;
+                    handle_general_menu_input(menu_choice);
+                }
             }
-            break;
+        }
+        else
+        {
+            printf("❌ 로그인 실패\n");
+            printf("사유: %s\n", response); // 예: 로그인 실패, DB 오류 등
+        }
+        break;
 
-        case 2: // 회원가입
-            printf("아이디: ");
-            fgets(id, sizeof(id), stdin);
-            id[strcspn(id, "\n")] = 0;
+    case 2: // 회원가입
+        printf("아이디: ");
+        fgets(id, sizeof(id), stdin);
+        id[strcspn(id, "\n")] = 0;
 
-            printf("비밀번호: ");
-            fgets(pw, sizeof(pw), stdin);
-            pw[strcspn(pw, "\n")] = 0;
+        printf("비밀번호: ");
+        fgets(pw, sizeof(pw), stdin);
+        pw[strcspn(pw, "\n")] = 0;
 
-            printf("교육청 이름: ");
-            fgets(edu_office, sizeof(edu_office), stdin);
-            edu_office[strcspn(edu_office, "\n")] = 0;
+        printf("이름: ");
+        fgets(name, sizeof(name), stdin);
+        name[strcspn(name, "\n")] = 0;
 
-            printf("학교 코드: ");
-            fgets(school_name, sizeof(school_name), stdin);
-            school_name[strcspn(school_name, "\n")] = 0;
+        printf("교육청 이름: ");
+        fgets(edu_office, sizeof(edu_office), stdin);
+        edu_office[strcspn(edu_office, "\n")] = 0;
 
-            if (handle_register(id, pw, edu_office, school_name, response)) {
-                printf("회원가입 성공: %s\n", response);
-            } else {
-                printf("회원가입 실패: %s\n", response);
-            }
-            break;
+        printf("학교 코드: ");
+        fgets(school_name, sizeof(school_name), stdin);
+        school_name[strcspn(school_name, "\n")] = 0;
+
+        printf("회원가입 요청 전송: ID=%s, PW=%s, NAME=%s, EDU=%s, SCHOOL=%s\n", id, pw, name, edu_office, school_name);
+
+        if (handle_register(id, pw, name, edu_office, school_name, response))
+        {
+            printf("회원가입 성공: %s\n", response);
+        }
+        else
+        {
+            printf("회원가입 실패: %s\n", response);
+        }
+        break;
     }
 }
 
-void handle_general_menu_input(int choice) {
+void handle_general_menu_input(int choice)
+{
     handle_general_menu(choice);
 }
 
-void handle_parent_menu_input(int choice) {
+void handle_parent_menu_input(int choice)
+{
     handle_parent_menu(choice);
-} 
+}

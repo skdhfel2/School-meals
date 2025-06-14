@@ -48,38 +48,45 @@ bool handle_login(const char *id, const char *pw, char *response)
         return false;
     }
 
-    // 응답 파싱
-    char *status = strtok(response, CMD_DELIMITER);
-    if (status && atoi(status) == RESP_SUCCESS)
+    char temp_response[BUFFER_SIZE];
+    strncpy(temp_response, response, BUFFER_SIZE - 1);
+    temp_response[BUFFER_SIZE - 1] = '\0';
+
+    char *code = strtok(temp_response, CMD_DELIMITER); // "1"
+    char *command = strtok(NULL, CMD_DELIMITER);       // "LOGIN"
+    char *message = strtok(NULL, CMD_DELIMITER);       // "로그인 성공"
+    char *edu_office = strtok(NULL, CMD_DELIMITER);    // ...
+    char *school_name = strtok(NULL, CMD_DELIMITER);   // ...
+    char *role = strtok(NULL, CMD_DELIMITER);          // ...
+
+    if (code && command && strcmp(code, "1") == 0 && strcmp(command, "LOGIN") == 0)
     {
-        // 사용자 정보 저장
-        strncpy(current_user_id, id, MAX_ID_LEN - 1);
-        current_user_id[MAX_ID_LEN - 1] = '\0';
-
-        char *message = strtok(NULL, CMD_DELIMITER); // "로그인 성공" → 사용 X, 건너뜀
-        char *edu_office = strtok(NULL, CMD_DELIMITER);
-        char *school_name = strtok(NULL, CMD_DELIMITER);
-        char *role = strtok(NULL, CMD_DELIMITER);
-
         if (edu_office && school_name && role)
         {
+            printf("🔐 로그인 응답 파싱 성공\n");
+            printf("  교육청: %s\n", edu_office);
+            printf("  학교명: %s\n", school_name);
+            printf("  역할: %s\n", role);
+
+            strncpy(current_user_id, id, MAX_ID_LEN - 1);
+            current_user_id[MAX_ID_LEN - 1] = '\0';
             strncpy(current_user_edu_office, edu_office, MAX_EDU_OFFICE_LEN - 1);
             current_user_edu_office[MAX_EDU_OFFICE_LEN - 1] = '\0';
-
             strncpy(current_user_school, school_name, MAX_SCHOOL_NAME_LEN - 1);
             current_user_school[MAX_SCHOOL_NAME_LEN - 1] = '\0';
-
             strncpy(current_user_role, role, MAX_ROLE_LEN - 1);
             current_user_role[MAX_ROLE_LEN - 1] = '\0';
-
             return true;
+        }
+        else
+        {
+            printf("⚠️ 응답 파싱 실패: 누락된 값 있음\n");
         }
     }
 
-    return false;
+    return false; // 조건 안 맞으면 실패 처리
 }
-
-bool handle_register(const char *id, const char *pw, const char *edu_office, const char *school_name, char *response)
+bool handle_register(const char *id, const char *pw, const char *name, const char *edu_office, const char *school_name, char *response)
 {
     if (!is_valid_edu_office(edu_office))
     {
@@ -88,9 +95,9 @@ bool handle_register(const char *id, const char *pw, const char *edu_office, con
     }
 
     char buffer[BUFFER_SIZE];
-    snprintf(buffer, sizeof(buffer), "%s%s%s%s%s%s%s%s%s",
+    snprintf(buffer, sizeof(buffer), "%s%s%s%s%s%s%s%s%s%s%s",
              CMD_REGISTER_GENERAL, CMD_DELIMITER, id, CMD_DELIMITER, pw,
-             CMD_DELIMITER, edu_office, CMD_DELIMITER, school_name);
+             CMD_DELIMITER, name, CMD_DELIMITER, edu_office, CMD_DELIMITER, school_name);
 
     if (!send_data(client_socket, buffer, strlen(buffer)))
     {
@@ -232,12 +239,12 @@ bool get_children(const char *parent_id, char *response)
 }
 
 // 사용자 관리 핸들러
-bool handle_add_user(const char *id, const char *pw, const char *edu_office, const char *school_name, char *response)
+bool handle_add_user(const char *id, const char *pw, const char *name, const char *edu_office, const char *school_name, char *response)
 {
     char buffer[BUFFER_SIZE];
-    snprintf(buffer, sizeof(buffer), "%s%s%s%s%s%s%s%s%s",
+    snprintf(buffer, sizeof(buffer), "%s%s%s%s%s%s%s%s%s%s%s",
              CMD_REGISTER_GENERAL, CMD_DELIMITER, id, CMD_DELIMITER, pw,
-             CMD_DELIMITER, edu_office, CMD_DELIMITER, school_name);
+             CMD_DELIMITER, name, CMD_DELIMITER, edu_office, CMD_DELIMITER, school_name);
 
     if (!send_data(client_socket, buffer, strlen(buffer)))
     {
@@ -248,12 +255,12 @@ bool handle_add_user(const char *id, const char *pw, const char *edu_office, con
     return receive_response(response);
 }
 
-bool handle_update_user(const char *id, const char *pw, const char *edu_office, const char *school_name, char *response)
+bool handle_update_user(const char *id, const char *pw, const char *name, const char *edu_office, const char *school_name, char *response)
 {
     char buffer[BUFFER_SIZE];
-    snprintf(buffer, sizeof(buffer), "%s%s%s%s%s%s%s%s%s",
+    snprintf(buffer, sizeof(buffer), "%s%s%s%s%s%s%s%s%s%s%s",
              CMD_UPDATE, CMD_DELIMITER, id, CMD_DELIMITER, pw,
-             CMD_DELIMITER, edu_office, CMD_DELIMITER, school_name);
+             CMD_DELIMITER, name, CMD_DELIMITER, edu_office, CMD_DELIMITER, school_name);
 
     if (!send_data(client_socket, buffer, strlen(buffer)))
     {

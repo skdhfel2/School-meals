@@ -18,7 +18,7 @@ static CRITICAL_SECTION clients_mutex;
 static volatile sig_atomic_t running = 1;
 
 // 함수 선언
-bool handle_register_general(SOCKET client_socket, const char *id, const char *pw, const char *edu_office, const char *school_name);
+bool handle_register_general(SOCKET client_socket, const char *id, const char *pw, const char *name, const char *edu_office, const char *school_name);
 bool send_response(SOCKET client_socket, int status, const char *message, const char *data);
 
 void signal_handler(int sig)
@@ -63,6 +63,7 @@ DWORD WINAPI handle_client(LPVOID arg)
         char *date = NULL;
         char *child_id = NULL;
         char *period = NULL;
+        char *name = NULL;
 
         if (strcmp(cmd, CMD_GET_MEAL) == 0)
         {
@@ -86,48 +87,15 @@ DWORD WINAPI handle_client(LPVOID arg)
             printf("학교: %s\n", school_name);
             printf("기간: %s\n", period);
         }
-        else
+        else if (strcmp(cmd, CMD_REGISTER_GENERAL) == 0)
         {
             id = strtok(NULL, CMD_DELIMITER);
             pw = strtok(NULL, CMD_DELIMITER);
+            name = strtok(NULL, CMD_DELIMITER);
             edu_office = strtok(NULL, CMD_DELIMITER);
             school_name = strtok(NULL, CMD_DELIMITER);
-            date = strtok(NULL, CMD_DELIMITER);
-            child_id = strtok(NULL, CMD_DELIMITER);
-            period = strtok(NULL, CMD_DELIMITER);
-        }
-
-        if (strcmp(cmd, CMD_LOGIN) == 0)
-        {
-            if (id && pw)
-            {
-                if (verify_user(id, pw))
-                {
-                    User user;
-                    if (get_user(id, &user))
-                    {
-                        char data[256];
-                        snprintf(data, sizeof(data), "%s//%s//%s", user.edu_office, user.school_name, user.role);
-                        send_response(client_socket, RESP_SUCCESS, RESP_LOGIN_OK, data);
-                    }
-                    else
-                    {
-                        send_response(client_socket, RESP_ERROR, RESP_DB_ERROR, "");
-                    }
-                }
-                else
-                {
-                    send_response(client_socket, RESP_ERROR, ERR_INVALID_LOGIN, "");
-                }
-            }
-            else
-            {
-                send_response(client_socket, RESP_ERROR, RESP_INVALID_REQUEST, "");
-            }
-        }
-        else if (strcmp(cmd, CMD_REGISTER_GENERAL) == 0)
-        {
-            if (id && pw && edu_office && school_name)
+            printf("[REGISTER_GENERAL] 파싱: id=%s, pw=%s, name=%s, edu_office=%s, school_name=%s\n", id, pw, name, edu_office, school_name);
+            if (id && pw && name && edu_office && school_name)
             {
                 if (is_user_exists(id))
                 {
@@ -135,9 +103,13 @@ DWORD WINAPI handle_client(LPVOID arg)
                 }
                 else
                 {
-                    if (handle_register_general(client_socket, id, pw, edu_office, school_name))
+                    if (handle_register_general(client_socket, id, pw, name, edu_office, school_name))
                     {
                         send_response(client_socket, RESP_SUCCESS, RESP_REGISTER_OK, "");
+                    }
+                    else
+                    {
+                        send_response(client_socket, RESP_ERROR, "회원가입 실패", "");
                     }
                 }
             }
@@ -148,7 +120,12 @@ DWORD WINAPI handle_client(LPVOID arg)
         }
         else if (strcmp(cmd, CMD_UPDATE) == 0)
         {
-            if (id && pw && edu_office && school_name)
+            id = strtok(NULL, CMD_DELIMITER);
+            pw = strtok(NULL, CMD_DELIMITER);
+            name = strtok(NULL, CMD_DELIMITER);
+            edu_office = strtok(NULL, CMD_DELIMITER);
+            school_name = strtok(NULL, CMD_DELIMITER);
+            if (id && pw && name && edu_office && school_name)
             {
                 // 학교 코드 변환
                 char edu_code[10] = {0};
@@ -163,16 +140,16 @@ DWORD WINAPI handle_client(LPVOID arg)
                     strncpy(user.id, id, MAX_ID_LEN - 1);
                     strncpy(user.pw, pw, MAX_PW_LEN - 1);
                     user.pw[MAX_PW_LEN - 1] = '\0';
+                    strncpy(user.name, name, MAX_NAME_LEN - 1);
+                    user.name[MAX_NAME_LEN - 1] = '\0';
                     strncpy(user.edu_office, edu_code, MAX_EDU_OFFICE_LEN - 1);
                     user.edu_office[MAX_EDU_OFFICE_LEN - 1] = '\0';
                     strncpy(user.school_name, school_code, MAX_SCHOOL_NAME_LEN - 1);
                     user.school_name[MAX_SCHOOL_NAME_LEN - 1] = '\0';
 
-                    // 이름, 역할은 기존 값 유지
+                    // 역할은 기존 값 유지
                     User old_user = {0};
                     get_user(id, &old_user);
-                    strncpy(user.name, old_user.name, MAX_NAME_LEN - 1);
-                    user.name[MAX_NAME_LEN - 1] = '\0';
                     strncpy(user.role, old_user.role, MAX_ROLE_LEN - 1);
                     user.role[MAX_ROLE_LEN - 1] = '\0';
 
@@ -355,10 +332,13 @@ DWORD WINAPI handle_client(LPVOID arg)
                 char edu_code[10] = {0};
                 char school_code[20] = {0};
                 // school_name이 숫자(학교코드)라면 변환하지 않고 바로 사용
-                if (school_name[0] >= '0' && school_name[0] <= '9') {
+                if (school_name[0] >= '0' && school_name[0] <= '9')
+                {
                     strncpy(edu_code, edu_office, sizeof(edu_code) - 1);
                     strncpy(school_code, school_name, sizeof(school_code) - 1);
-                } else {
+                }
+                else
+                {
                     if (!resolve_school_code(school_name, edu_code, school_code))
                     {
                         printf("❌ 학교 정보를 찾을 수 없습니다: %s\n", school_name);
@@ -396,10 +376,13 @@ DWORD WINAPI handle_client(LPVOID arg)
                     char edu_code[10] = {0};
                     char school_code[20] = {0};
                     // school_name이 숫자(학교코드)라면 변환하지 않고 바로 사용
-                    if (school_name[0] >= '0' && school_name[0] <= '9') {
+                    if (school_name[0] >= '0' && school_name[0] <= '9')
+                    {
                         strncpy(edu_code, edu_office, sizeof(edu_code) - 1);
                         strncpy(school_code, school_name, sizeof(school_code) - 1);
-                    } else {
+                    }
+                    else
+                    {
                         if (!resolve_school_code(school_name, edu_code, school_code))
                         {
                             printf("❌ 학교 정보를 찾을 수 없습니다: %s\n", school_name);
@@ -424,6 +407,30 @@ DWORD WINAPI handle_client(LPVOID arg)
                 send_response(client_socket, RESP_ERROR, RESP_INVALID_REQUEST, "");
             }
         }
+        else if (strcmp(cmd, CMD_LOGIN) == 0) {
+            id = strtok(NULL, CMD_DELIMITER);
+            pw = strtok(NULL, CMD_DELIMITER);
+            printf("[LOGIN 요청] id=%s, pw=%s\n", id, pw);
+            if (!id || !pw) {
+                printf("[LOGIN 실패] ID 또는 PW 누락됨\n");
+                send_response(client_socket, RESP_ERROR, "입력 누락", "");
+                continue;
+            }
+            if (verify_user(id, pw)) {
+                printf("[LOGIN 성공] 사용자 인증 통과\n");
+                User user;
+                if (get_user(id, &user)) {
+                    char data[256];
+                    snprintf(data, sizeof(data), "로그인 성공//%s//%s//%s", user.edu_office, user.school_name, user.role);
+                    send_response(client_socket, RESP_SUCCESS, "LOGIN", data);
+                } else {
+                    send_response(client_socket, RESP_ERROR, "DB 조회 실패", "");
+                }
+            } else {
+                printf("[LOGIN 실패] 사용자 인증 실패 → id=%s, pw=%s\n", id, pw);
+                send_response(client_socket, RESP_ERROR, "로그인 실패", "");
+            }
+        }
         else
         {
             send_response(client_socket, RESP_ERROR, RESP_UNKNOWN_COMMAND, "");
@@ -446,14 +453,15 @@ DWORD WINAPI handle_client(LPVOID arg)
     return 0;
 }
 
-bool handle_register_general(SOCKET client_socket, const char *id, const char *pw, const char *edu_office, const char *school_name)
+bool handle_register_general(SOCKET client_socket, const char *id, const char *pw, const char *name, const char *edu_office, const char *school_name)
 {
+    printf("[handle_register_general] 요청 파싱됨: id=%s, pw=%s, name=%s, edu_office=%s, school=%s\n", id, pw, name, edu_office, school_name);
     printf("회원가입 처리 시작: ID=%s\n", id);
 
     // 학교 코드 조회
     char edu_code[10] = {0};
     char school_code[20] = {0};
-    
+
     if (!resolve_school_code(school_name, edu_code, school_code))
     {
         printf("❌ 학교 정보를 찾을 수 없습니다: %s\n", school_name);
@@ -465,21 +473,23 @@ bool handle_register_general(SOCKET client_socket, const char *id, const char *p
     User user = {0};
     strncpy(user.id, id, MAX_ID_LEN - 1);
     strncpy(user.pw, pw, MAX_PW_LEN - 1);
-    strncpy(user.name, "", MAX_NAME_LEN - 1);
+    strncpy(user.name, name, MAX_NAME_LEN - 1);
     strncpy(user.role, ROLE_GENERAL, MAX_ROLE_LEN - 1);
     strncpy(user.edu_office, edu_code, MAX_EDU_OFFICE_LEN - 1);
     strncpy(user.school_name, school_code, MAX_SCHOOL_NAME_LEN - 1);
 
-    printf("사용자 정보 생성 완료\n");
+    printf("[add_user] INSERT 실행 전: id=%s, name=%s, role=%s, edu_office=%s, school_name=%s\n", user.id, user.name, user.role, user.edu_office, user.school_name);
 
     // 데이터베이스에 사용자 추가
     if (add_user(&user))
     {
+        printf("[add_user] sqlite3_exec 성공\n");
         printf("회원가입 성공\n");
         return true;
     }
     else
     {
+        printf("[add_user] sqlite3_exec 실패\n");
         printf("회원가입 실패: 데이터베이스 오류\n");
         return false;
     }

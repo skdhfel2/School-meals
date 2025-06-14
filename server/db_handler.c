@@ -118,6 +118,7 @@ bool add_user(const User *user)
              "VALUES ('%s', '%s', '%s', '%s', '%s', '%s');",
              user->id, user->pw, user->name, user->role, user->edu_office, user->school_name);
 
+    printf("[add_user] INSERT 실행 전 SQL: %s\n", sql);
     int rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
     if (rc != SQLITE_OK)
     {
@@ -393,23 +394,27 @@ bool is_child_registered(const char *child_id, const char *parent_id) // 부모 
     return exists;
 }
 
-bool verify_user(const char *id, const char *pw) // ID와 비밀번호를 검사해서 로그인 인증을 처리하는 함수
-{
+bool verify_user(const char *id, const char *pw) {
+    printf("▶ verify_user() 호출됨: id=%s, pw=%s\n", id, pw);
     const char *sql = "SELECT 1 FROM users WHERE id = ? AND pw = ?;";
     sqlite3_stmt *stmt;
-
     int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
-    if (rc != SQLITE_OK)
-    {
+    if (rc != SQLITE_OK) {
+        printf("❌ SQL 준비 실패: %s\n", sqlite3_errmsg(db));
         return false;
     }
-
     sqlite3_bind_text(stmt, 1, id, -1, SQLITE_STATIC);
     sqlite3_bind_text(stmt, 2, pw, -1, SQLITE_STATIC);
-
-    bool exists = (sqlite3_step(stmt) == SQLITE_ROW);
-    sqlite3_finalize(stmt);
-    return exists;
+    int step = sqlite3_step(stmt);
+    if (step == SQLITE_ROW) {
+        printf("✅ DB에 사용자 있음\n");
+        sqlite3_finalize(stmt);
+        return true;
+    } else {
+        printf("❌ 사용자 없음 or 비밀번호 불일치\n");
+        sqlite3_finalize(stmt);
+        return false;
+    }
 }
 
 static int get_children_callback(void *data, int argc, char **argv, char **col_names)
@@ -455,4 +460,11 @@ bool get_children(const char *parent_id, char *response)
 
     strcpy(response, json);
     return true;
+}
+
+void trim_string(char *str) {
+    int len = strlen(str);
+    while (len > 0 && (str[len - 1] == '\n' || str[len - 1] == '\r')) {
+        str[--len] = '\0';
+    }
 }

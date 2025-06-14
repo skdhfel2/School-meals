@@ -15,6 +15,7 @@ void handle_general_menu(int choice)
 {
     char response[BUFFER_SIZE];
     char id[MAX_ID_LEN], pw[MAX_PW_LEN];
+    char name[MAX_NAME_LEN];
     char edu_office[MAX_EDU_OFFICE_LEN], school_name[MAX_SCHOOL_NAME_LEN];
     char date[9], end_date[9];
     int i;
@@ -145,6 +146,10 @@ void handle_general_menu(int choice)
             fgets(pw, sizeof(pw), stdin);
             pw[strcspn(pw, "\n")] = 0;
 
+            printf("이름: ");
+            fgets(name, sizeof(name), stdin);
+            name[strcspn(name, "\n")] = 0;
+
             printf("교육청 이름: ");
             fgets(edu_office, sizeof(edu_office), stdin);
             edu_office[strcspn(edu_office, "\n")] = 0;
@@ -153,7 +158,9 @@ void handle_general_menu(int choice)
             fgets(school_name, sizeof(school_name), stdin);
             school_name[strcspn(school_name, "\n")] = 0;
 
-            if (handle_add_user(id, pw, edu_office, school_name, response))
+            printf("회원가입 요청 전송: ID=%s, PW=%s, NAME=%s, EDU=%s, SCHOOL=%s\n", id, pw, name, edu_office, school_name);
+
+            if (handle_add_user(id, pw, name, edu_office, school_name, response))
             {
                 printf("사용자 추가 성공: %s\n", response);
             }
@@ -173,6 +180,10 @@ void handle_general_menu(int choice)
             fgets(pw, sizeof(pw), stdin);
             pw[strcspn(pw, "\n")] = 0;
 
+            printf("새 이름: ");
+            fgets(name, sizeof(name), stdin);
+            name[strcspn(name, "\n")] = 0;
+
             printf("새 교육청 이름: ");
             fgets(edu_office, sizeof(edu_office), stdin);
             edu_office[strcspn(edu_office, "\n")] = 0;
@@ -181,7 +192,7 @@ void handle_general_menu(int choice)
             fgets(school_name, sizeof(school_name), stdin);
             school_name[strcspn(school_name, "\n")] = 0;
 
-            if (handle_update_user(id, pw, edu_office, school_name, response))
+            if (handle_update_user(id, pw, name, edu_office, school_name, response))
             {
                 printf("사용자 수정 성공: %s\n", response);
             }

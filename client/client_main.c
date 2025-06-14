@@ -17,6 +17,7 @@
 char current_user_id[MAX_ID_LEN];
 char current_user_edu_office[MAX_EDU_OFFICE_LEN];
 char current_user_school[MAX_SCHOOL_NAME_LEN];
+char current_user_role[MAX_ROLE_LEN];
 
 bool connect_to_server(SOCKET sock, const char *ip, int port)
 {
@@ -72,22 +73,26 @@ void handle_register_general(SOCKET sock)
 {
     char id[MAX_ID_LEN];
     char pw[MAX_PW_LEN];
+    char name[MAX_NAME_LEN];
     char edu_office[MAX_EDU_OFFICE_LEN];
     char school_name[MAX_SCHOOL_NAME_LEN];
+
     char buffer[BUFFER_SIZE];
 
     printf("아이디: ");
     scanf("%s", id);
     printf("비밀번호: ");
     scanf("%s", pw);
+    printf("이름: ");
+    scanf("%s", name);
     printf("교육청: ");
     scanf("%s", edu_office);
     printf("학교명: ");
     scanf("%s", school_name);
 
     char cmd[BUFFER_SIZE];
-    snprintf(cmd, sizeof(cmd), "%s//%s//%s//%s//%s",
-             CMD_REGISTER_GENERAL, id, pw, edu_office, school_name);
+    snprintf(cmd, sizeof(cmd), "%s//%s//%s//%s//%s//%s",
+             CMD_REGISTER_GENERAL, id, pw, name, edu_office, school_name);
 
     send_command(sock, cmd);
     receive_response(sock, buffer);
@@ -139,16 +144,19 @@ void handle_login(int sock)
     printf("서버 응답 원본: %s\n", buffer); // 디버깅용
 
     // 응답 파싱
-    char *status = strtok(buffer, "//");
-    char *msg = strtok(NULL, "//");
-    char *edu_office = strtok(NULL, "//");
-    char *school_name = strtok(NULL, "//");
+    char *status = strtok(buffer, "//");    // "1"
+    char *command = strtok(NULL, "//");     // "LOGIN"
+    char *msg = strtok(NULL, "//");         // "로그인 성공"
+    char *edu_office = strtok(NULL, "//");  // "충청남도교육청"
+    char *school_name = strtok(NULL, "//"); // "천안중앙고등학교"
+    char *role = strtok(NULL, "//");        // "GENERAL"
 
     printf("파싱 결과:\n"); // 디버깅용
     printf("status: %s\n", status);
     printf("msg: %s\n", msg);
     printf("edu_office: %s\n", edu_office);
     printf("school_name: %s\n", school_name);
+    printf("role: %s\n", role);
 
     if (status && atoi(status) == 1)
     {
@@ -166,6 +174,12 @@ void handle_login(int sock)
         {
             strncpy(current_user_school, school_name, MAX_SCHOOL_NAME_LEN - 1);
             current_user_school[MAX_SCHOOL_NAME_LEN - 1] = '\0';
+        }
+
+        if (role)
+        {
+            strncpy(current_user_role, role, MAX_ROLE_LEN - 1);
+            current_user_role[MAX_ROLE_LEN - 1] = '\0';
         }
 
         printf("저장된 정보:\n"); // 디버깅용
@@ -213,7 +227,7 @@ void handle_meal(int sock)
 
 void handle_multi_meal(int sock)
 {
-    char start_date[10], end_date[10];  // 8자리 날짜 + null 문자
+    char start_date[10], end_date[10]; // 8자리 날짜 + null 문자
     char buffer[BUFFER_SIZE];
 
     if (!get_period_input(start_date, end_date, sizeof(start_date)))

@@ -7,7 +7,7 @@
 
 ### 1. 일반 회원가입
 ```
-REGISTER_GENERAL//ID//PW//교육청//학교명
+REGISTER_GENERAL//ID//PW//NAME//교육청//학교명
 ```
 - 응답:
   - 성공: `SUCCESS//REGISTER_GENERAL`
@@ -67,6 +67,11 @@ QUIT
 ```
 - 응답:
   - 성공: `SUCCESS//QUIT`
+
+### 9. 사용자 정보 수정
+```
+UPDATE//ID//PW//NAME//교육청//학교명
+```
 
 ## 데이터 형식
 

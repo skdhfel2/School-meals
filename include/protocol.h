@@ -64,7 +64,7 @@
 #define ROLE_PARENT "PARENT"
 
 // 응답 메시지 포맷
-#define RESP_LOGIN_FORMAT "%s//LOGIN//%s//%s//%s"
+#define RESP_LOGIN_FORMAT "%s//LOGIN//%s//%s//%s//%s"
 #define RESP_MEAL_FORMAT "%s//MEAL//%s"
 #define RESP_MULTI_MEAL_FORMAT "%s//MULTI_MEAL//%s"
 

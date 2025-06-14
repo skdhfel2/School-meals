@@ -6,7 +6,7 @@
 
 // 로그인 관련 핸들러
 bool handle_login(const char *id, const char *pw, char *response);
-bool handle_register(const char *id, const char *pw, const char *edu_office, const char *school_name, char *response);
+bool handle_register(const char *id, const char *pw, const char *name, const char *edu_office, const char *school_name, char *response);
 void handle_logout(void);
 
 // 급식 조회 핸들러
@@ -21,8 +21,8 @@ bool delete_child(const char *parent_id, const char *child_id, char *response);
 bool get_children(const char *parent_id, char *response);
 
 // 사용자 관리 핸들러
-bool handle_add_user(const char *id, const char *pw, const char *edu_office, const char *school_name, char *response);
-bool handle_update_user(const char *id, const char *pw, const char *edu_office, const char *school_name, char *response);
+bool handle_add_user(const char *id, const char *pw, const char *name, const char *edu_office, const char *school_name, char *response);
+bool handle_update_user(const char *id, const char *pw, const char *name, const char *edu_office, const char *school_name, char *response);
 bool handle_delete_user(const char *id, char *response);
 
 // 기존 함수들의 별칭
