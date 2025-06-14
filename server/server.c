@@ -352,15 +352,19 @@ DWORD WINAPI handle_client(LPVOID arg)
         {
             if (edu_office && school_name && date)
             {
-                // 학교 코드 조회
                 char edu_code[10] = {0};
                 char school_code[20] = {0};
-                
-                if (!resolve_school_code(school_name, edu_code, school_code))
-                {
-                    printf("❌ 학교 정보를 찾을 수 없습니다: %s\n", school_name);
-                    send_response(client_socket, RESP_ERROR, "학교 정보를 찾을 수 없습니다.", "");
-                    continue;
+                // school_name이 숫자(학교코드)라면 변환하지 않고 바로 사용
+                if (school_name[0] >= '0' && school_name[0] <= '9') {
+                    strncpy(edu_code, edu_office, sizeof(edu_code) - 1);
+                    strncpy(school_code, school_name, sizeof(school_code) - 1);
+                } else {
+                    if (!resolve_school_code(school_name, edu_code, school_code))
+                    {
+                        printf("❌ 학교 정보를 찾을 수 없습니다: %s\n", school_name);
+                        send_response(client_socket, RESP_ERROR, "학교 정보를 찾을 수 없습니다.", "");
+                        continue;
+                    }
                 }
 
                 char meal[MAX_MEAL_LEN] = {0};
@@ -389,15 +393,19 @@ DWORD WINAPI handle_client(LPVOID arg)
                 }
                 else
                 {
-                    // 학교 코드 조회
                     char edu_code[10] = {0};
                     char school_code[20] = {0};
-                    
-                    if (!resolve_school_code(school_name, edu_code, school_code))
-                    {
-                        printf("❌ 학교 정보를 찾을 수 없습니다: %s\n", school_name);
-                        send_response(client_socket, RESP_ERROR, "학교 정보를 찾을 수 없습니다.", "");
-                        continue;
+                    // school_name이 숫자(학교코드)라면 변환하지 않고 바로 사용
+                    if (school_name[0] >= '0' && school_name[0] <= '9') {
+                        strncpy(edu_code, edu_office, sizeof(edu_code) - 1);
+                        strncpy(school_code, school_name, sizeof(school_code) - 1);
+                    } else {
+                        if (!resolve_school_code(school_name, edu_code, school_code))
+                        {
+                            printf("❌ 학교 정보를 찾을 수 없습니다: %s\n", school_name);
+                            send_response(client_socket, RESP_ERROR, "학교 정보를 찾을 수 없습니다.", "");
+                            continue;
+                        }
                     }
 
                     char meals[MAX_MEAL_LEN] = {0};
