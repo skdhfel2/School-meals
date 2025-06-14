@@ -102,7 +102,7 @@ void handle_login_menu_input(int choice) {
             fgets(pw, sizeof(pw), stdin);
             pw[strcspn(pw, "\n")] = 0;
 
-            printf("교육청 코드: ");
+            printf("교육청 이름: ");
             fgets(edu_office, sizeof(edu_office), stdin);
             edu_office[strcspn(edu_office, "\n")] = 0;
 

@@ -107,7 +107,7 @@ void get_password_input(char *password, size_t size) {
 
 // 교육청 코드 입력 받기
 void get_edu_office_input(char *edu_office, size_t size) {
-    printf("교육청 코드: ");
+    printf("교육청 이름: ");
     safe_input(edu_office, size);
 }
 

@@ -156,7 +156,38 @@ bool get_user(const char *id, User *user)
     sqlite3_finalize(stmt);
     return false;
 }
+bool get_children_db(const char *parent_id, Child *children, int *count)
+{
+    sqlite3_stmt *stmt;
+    const char *sql = "SELECT id FROM children WHERE parent_id = ?;";
+    *count = 0;
 
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        fprintf(stderr, "SQL prepare error: %s\n", sqlite3_errmsg(db));
+        return false;
+    }
+
+    if (sqlite3_bind_text(stmt, 1, parent_id, -1, SQLITE_STATIC) != SQLITE_OK)
+    {
+        fprintf(stderr, "SQL bind error: %s\n", sqlite3_errmsg(db));
+        sqlite3_finalize(stmt);
+        return false;
+    }
+
+    while (sqlite3_step(stmt) == SQLITE_ROW)
+    {
+        const unsigned char *child_id = sqlite3_column_text(stmt, 0);
+        if (*count < MAX_CHILDREN)
+        {
+            strcpy(children[*count].id, (const char *)child_id);
+            (*count)++;
+        }
+    }
+
+    sqlite3_finalize(stmt);
+    return true;
+}
 bool update_user(const User *user)
 { // users 테이블에서 특정 ID의 사용자를 찾아서 정보 수정
     const char *sql =
@@ -197,10 +228,13 @@ bool delete_user(const char *id, char *response) // 사용자 ID를 기준으로
     rc = sqlite3_step(stmt);
     sqlite3_finalize(stmt);
 
-    if (rc == SQLITE_DONE) {
+    if (rc == SQLITE_DONE)
+    {
         strcpy(response, "사용자 삭제 성공");
         return true;
-    } else {
+    }
+    else
+    {
         strcpy(response, "사용자 삭제 실패");
         return false;
     }
@@ -259,11 +293,11 @@ bool get_meal(const char *date, const char *edu_office, const char *school_name,
     return false;
 }
 
-bool db_get_children(const char *parent_id, Child *children, int *count) // 이 함수는 부모 ID를 받아서, 해당 부모가 등록한 자녀 목록을 DB에서 조회하고 Child 구조체 배열에 저장하는 기능을 수행
+bool get_children_raw(const char *parent_id, Child *children, int *count)
 {
     const char *sql =
         "SELECT u.id, u.name, u.edu_office, u.school_name "
-        "FROM children c JOIN users u ON c.child_id = u.id " // 자녀 ID(child_id) → users 테이블에서 이름, 학교 정보 등 가져오기
+        "FROM children c JOIN users u ON c.child_id = u.id "
         "WHERE c.parent_id = ?;";
 
     sqlite3_stmt *stmt;
@@ -278,9 +312,9 @@ bool db_get_children(const char *parent_id, Child *children, int *count) // 이 
     *count = 0;
     while (sqlite3_step(stmt) == SQLITE_ROW && *count < MAX_CHILDREN)
     {
-        Child *child = &children[*count]; // 구조체에 값 복사
+        Child *child = &children[*count];
         strncpy(child->id, (const char *)sqlite3_column_text(stmt, 0), MAX_ID_LEN - 1);
-        strncpy(child->name, (const char *)sqlite3_column_text(stmt, 1), MAX_CHILD_NAME_LEN - 1);
+        strncpy(child->name, (const char *)sqlite3_column_text(stmt, 1), MAX_NAME_LEN - 1);
         strncpy(child->edu_office, (const char *)sqlite3_column_text(stmt, 2), MAX_EDU_OFFICE_LEN - 1);
         strncpy(child->school_name, (const char *)sqlite3_column_text(stmt, 3), MAX_SCHOOL_NAME_LEN - 1);
         (*count)++;
@@ -356,6 +390,7 @@ bool is_child_registered(const char *child_id, const char *parent_id) // 부모 
     sqlite3_finalize(stmt);
     return exists;
 }
+
 bool verify_user(const char *id, const char *pw) // ID와 비밀번호를 검사해서 로그인 인증을 처리하는 함수
 {
     const char *sql = "SELECT 1 FROM users WHERE id = ? AND pw = ?;";
@@ -373,4 +408,49 @@ bool verify_user(const char *id, const char *pw) // ID와 비밀번호를 검사
     bool exists = (sqlite3_step(stmt) == SQLITE_ROW);
     sqlite3_finalize(stmt);
     return exists;
+}
+
+static int get_children_callback(void *data, int argc, char **argv, char **col_names)
+{
+    int *count = (int *)data;
+    Child *children = (Child *)data - sizeof(int);
+
+    if (*count < MAX_CHILDREN)
+    {
+        Child *child = &children[*count];
+        strncpy(child->id, argv[0], MAX_ID_LEN - 1);
+        strncpy(child->name, argv[1], MAX_NAME_LEN - 1);
+        strncpy(child->edu_office, argv[2], MAX_EDU_OFFICE_LEN - 1);
+        strncpy(child->school_name, argv[3], MAX_SCHOOL_NAME_LEN - 1);
+        (*count)++;
+    }
+    return 0;
+}
+
+bool get_children(const char *parent_id, char *response)
+{
+    Child children[MAX_CHILDREN];
+    int count = 0;
+
+    if (!get_children_raw(parent_id, children, &count))
+    {
+        strcpy(response, RESP_DB_ERROR);
+        return false;
+    }
+
+    // JSON 형식으로 변환
+    char json[BUFFER_SIZE] = "[";
+    for (int i = 0; i < count; i++)
+    {
+        char child_json[256];
+        snprintf(child_json, sizeof(child_json),
+                 "{\"id\":\"%s\",\"name\":\"%s\",\"edu_office\":\"%s\",\"school_name\":\"%s\"}%s",
+                 children[i].id, children[i].name, children[i].edu_office, children[i].school_name,
+                 (i < count - 1) ? "," : "");
+        strncat(json, child_json, sizeof(json) - strlen(json) - 1);
+    }
+    strncat(json, "]", sizeof(json) - strlen(json) - 1);
+
+    strcpy(response, json);
+    return true;
 }

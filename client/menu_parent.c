@@ -57,7 +57,7 @@ void handle_parent_menu(int choice) {
             scanf("%d", &sub_choice);
             getchar();
 
-            printf("교육청 코드: ");
+            printf("교육청 이름: ");
             fgets(edu_office, sizeof(edu_office), stdin);
             edu_office[strcspn(edu_office, "\n")] = 0;
             

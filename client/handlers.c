@@ -24,7 +24,40 @@ bool handle_login(const char *id, const char *pw, char *response)
         return false;
     }
 
-    return receive_response(response);
+    if (!receive_response(response))
+    {
+        strcpy(response, "서버 응답 수신 실패");
+        return false;
+    }
+
+    // 응답 파싱
+    char *status = strtok(response, CMD_DELIMITER);
+    if (strcmp(status, RESP_SUCCESS_STR) == 0)
+    {
+        // 사용자 정보 저장
+        strncpy(current_user_id, id, MAX_ID_LEN - 1);
+        current_user_id[MAX_ID_LEN - 1] = '\0';
+
+        char *edu_office = strtok(NULL, CMD_DELIMITER);
+        char *school_name = strtok(NULL, CMD_DELIMITER);
+        char *role = strtok(NULL, CMD_DELIMITER);
+
+        if (edu_office && school_name && role)
+        {
+            strncpy(current_user_edu_office, edu_office, MAX_EDU_OFFICE_LEN - 1);
+            current_user_edu_office[MAX_EDU_OFFICE_LEN - 1] = '\0';
+
+            strncpy(current_user_school, school_name, MAX_SCHOOL_NAME_LEN - 1);
+            current_user_school[MAX_SCHOOL_NAME_LEN - 1] = '\0';
+
+            strncpy(current_user_role, role, MAX_ROLE_LEN - 1);
+            current_user_role[MAX_ROLE_LEN - 1] = '\0';
+
+            return true;
+        }
+    }
+
+    return false;
 }
 
 bool handle_register(const char *id, const char *pw, const char *edu_office, const char *school_name, char *response)
@@ -40,7 +73,20 @@ bool handle_register(const char *id, const char *pw, const char *edu_office, con
         return false;
     }
 
-    return receive_response(response);
+    if (!receive_response(response))
+    {
+        strcpy(response, "서버 응답 수신 실패");
+        return false;
+    }
+
+    // 응답 파싱
+    char *status = strtok(response, CMD_DELIMITER);
+    if (strcmp(status, RESP_SUCCESS_STR) == 0)
+    {
+        return true;
+    }
+
+    return false;
 }
 
 void handle_logout(void)

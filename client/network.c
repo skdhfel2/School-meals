@@ -1,4 +1,5 @@
 #include "network.h"
+#include "protocol.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -42,14 +43,31 @@ bool connect_to_server(SOCKET sock, const char *ip, int port)
 bool send_data(SOCKET sock, const char *data, int len)
 {
     int total_sent = 0;
+    int bytes_sent;
+
+    // 최대 5초 동안 전송 시도
+    fd_set write_fds;
+    struct timeval tv;
+    tv.tv_sec = 5;
+    tv.tv_usec = 0;
+
     while (total_sent < len)
     {
-        int sent = send(sock, data + total_sent, len - total_sent, 0);
-        if (sent == SOCKET_ERROR)
+        FD_ZERO(&write_fds);
+        FD_SET(sock, &write_fds);
+
+        int select_result = select(0, NULL, &write_fds, NULL, &tv);
+        if (select_result <= 0)
         {
             return false;
         }
-        total_sent += sent;
+
+        bytes_sent = send(sock, data + total_sent, len - total_sent, 0);
+        if (bytes_sent == SOCKET_ERROR)
+        {
+            return false;
+        }
+        total_sent += bytes_sent;
     }
     return true;
 }
@@ -83,25 +101,55 @@ bool receive_data(SOCKET sock, char *buffer, int buffer_size)
 // 응답 처리
 bool receive_response(char *response)
 {
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_SIZE] = {0};
     int total_received = 0;
+    int bytes_received;
+
+    // 최대 5초 동안 응답 대기
+    fd_set read_fds;
+    struct timeval tv;
+    tv.tv_sec = 5;
+    tv.tv_usec = 0;
+
+    FD_ZERO(&read_fds);
+    FD_SET(client_socket, &read_fds);
+
+    int select_result = select(0, &read_fds, NULL, NULL, &tv);
+    if (select_result <= 0)
+    {
+        strcpy(response, "서버 응답 시간 초과");
+        return false;
+    }
 
     while (total_received < BUFFER_SIZE - 1)
     {
-        int received = recv(client_socket, buffer + total_received,
-                            BUFFER_SIZE - total_received - 1, 0);
-        if (received == SOCKET_ERROR)
+        bytes_received = recv(client_socket, buffer + total_received,
+                              BUFFER_SIZE - total_received - 1, 0);
+        if (bytes_received == SOCKET_ERROR)
         {
+            strcpy(response, "서버 통신 오류");
             return false;
         }
-        if (received == 0)
+        if (bytes_received == 0)
         {
             break;
         }
-        total_received += received;
+        total_received += bytes_received;
+        buffer[total_received] = '\0';
+
+        // 응답이 완전히 수신되었는지 확인
+        if (strstr(buffer, CMD_DELIMITER) != NULL)
+        {
+            break;
+        }
     }
 
-    buffer[total_received] = '\0';
+    if (total_received == 0)
+    {
+        strcpy(response, "서버로부터 응답 없음");
+        return false;
+    }
+
     strcpy(response, buffer);
     return true;
 }

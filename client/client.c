@@ -36,13 +36,20 @@ int main()
         return 1;
     }
 
-    if (!connect_to_server(client_socket, SERVER_IP, SERVER_PORT))
+    struct sockaddr_in server_addr;
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(SERVER_PORT);
+    inet_pton(AF_INET, SERVER_IP, &server_addr.sin_addr);
+
+    if (connect(client_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
     {
-        printf("서버 연결에 실패했습니다.\n");
+        perror("서버 연결 실패");
         closesocket(client_socket);
         cleanup_network();
         return 1;
     }
+
+    printf("서버에 연결되었습니다.\n");
 
     int choice;
 

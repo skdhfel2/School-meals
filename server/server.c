@@ -33,10 +33,18 @@ DWORD WINAPI handle_client(LPVOID arg)
             break;
         }
 
+        printf("수신된 요청: %s\n", buffer);
+
         // 프로토콜 파싱
         char *cmd = strtok(buffer, CMD_DELIMITER);
         if (cmd == NULL)
-            continue;
+        {
+            printf("잘못된 요청 형식\n");
+            send_response(client_socket, RESP_ERROR, RESP_INVALID_REQUEST, "");
+            break;
+        }
+
+        printf("명령어: %s\n", cmd);
 
         char *id = strtok(NULL, CMD_DELIMITER);
         char *pw = strtok(NULL, CMD_DELIMITER); // 비밀번호
@@ -57,21 +65,21 @@ DWORD WINAPI handle_client(LPVOID arg)
                     {
                         char data[256];
                         snprintf(data, sizeof(data), "%s//%s//%s", user.edu_office, user.school_name, user.role);
-                        send_response(client_socket, SUCCESS, "로그인 성공", data);
+                        send_response(client_socket, RESP_SUCCESS, RESP_LOGIN_OK, data);
                     }
                     else
                     {
-                        send_response(client_socket, ERROR, "사용자 정보 조회 실패", "");
+                        send_response(client_socket, RESP_ERROR, RESP_DB_ERROR, "");
                     }
                 }
                 else
                 {
-                    send_response(client_socket, ERROR, "로그인 실패", "");
+                    send_response(client_socket, RESP_ERROR, ERR_INVALID_LOGIN, "");
                 }
             }
             else
             {
-                send_response(client_socket, ERROR, "잘못된 요청", "");
+                send_response(client_socket, RESP_ERROR, RESP_INVALID_REQUEST, "");
             }
         }
         else if (strcmp(cmd, CMD_REGISTER_GENERAL) == 0)
@@ -80,7 +88,7 @@ DWORD WINAPI handle_client(LPVOID arg)
             {
                 if (is_user_exists(id))
                 {
-                    send_response(client_socket, ERROR, ERR_DUPLICATE_ID, "");
+                    send_response(client_socket, RESP_ERROR, ERR_ID_DUPLICATE, "");
                 }
                 else
                 {
@@ -94,17 +102,17 @@ DWORD WINAPI handle_client(LPVOID arg)
 
                     if (add_user(&new_user))
                     {
-                        send_response(client_socket, SUCCESS, "회원가입 성공", "");
+                        send_response(client_socket, RESP_SUCCESS, RESP_REGISTER_OK, "");
                     }
                     else
                     {
-                        send_response(client_socket, ERROR, "회원가입 실패", "");
+                        send_response(client_socket, RESP_ERROR, RESP_DB_ERROR, "");
                     }
                 }
             }
             else
             {
-                send_response(client_socket, ERROR, "잘못된 요청", "");
+                send_response(client_socket, RESP_ERROR, RESP_INVALID_REQUEST, "");
             }
         }
         else if (strcmp(cmd, CMD_UPDATE) == 0)
@@ -118,16 +126,16 @@ DWORD WINAPI handle_client(LPVOID arg)
 
                 if (update_user(&user))
                 {
-                    send_response(client_socket, SUCCESS, "사용자 정보 수정 성공", "");
+                    send_response(client_socket, RESP_SUCCESS, RESP_UPDATE_OK, "");
                 }
                 else
                 {
-                    send_response(client_socket, ERROR, "사용자 정보 수정 실패", "");
+                    send_response(client_socket, RESP_ERROR, RESP_DB_ERROR, "");
                 }
             }
             else
             {
-                send_response(client_socket, ERROR, "잘못된 요청", "");
+                send_response(client_socket, RESP_ERROR, RESP_INVALID_REQUEST, "");
             }
         }
         else if (strcmp(cmd, CMD_DELETE) == 0)
@@ -137,16 +145,16 @@ DWORD WINAPI handle_client(LPVOID arg)
                 char response[BUFFER_SIZE] = {0};
                 if (delete_user(id, response))
                 {
-                    send_response(client_socket, SUCCESS, "사용자 삭제 성공", "");
+                    send_response(client_socket, RESP_SUCCESS, RESP_DELETE_OK, "");
                 }
                 else
                 {
-                    send_response(client_socket, ERROR, "사용자 삭제 실패", "");
+                    send_response(client_socket, RESP_ERROR, RESP_DB_ERROR, "");
                 }
             }
             else
             {
-                send_response(client_socket, ERROR, "잘못된 요청", "");
+                send_response(client_socket, RESP_ERROR, RESP_INVALID_REQUEST, "");
             }
         }
         else if (strcmp(cmd, CMD_GET_CHILDREN) == 0)
@@ -156,8 +164,9 @@ DWORD WINAPI handle_client(LPVOID arg)
                 Child children[MAX_CHILDREN];
                 int count = 0;
 
-                if (db_get_children(id, children, &count))
+                if (get_children_db(id, children, &count))
                 {
+                    // JSON 형식으로 변환
                     char json[BUFFER_SIZE] = "[";
                     for (int i = 0; i < count; i++)
                     {
@@ -168,16 +177,17 @@ DWORD WINAPI handle_client(LPVOID arg)
                         strncat(json, child_json, sizeof(json) - strlen(json) - 1);
                     }
                     strncat(json, "]", sizeof(json) - strlen(json) - 1);
-                    send_response(client_socket, SUCCESS, "자녀 목록 조회 성공", json);
+
+                    send_response(client_socket, RESP_SUCCESS, RESP_GET_CHILDREN_OK, json);
                 }
                 else
                 {
-                    send_response(client_socket, ERROR, "자녀 목록 조회 실패", "");
+                    send_response(client_socket, RESP_ERROR, RESP_DB_ERROR, "");
                 }
             }
             else
             {
-                send_response(client_socket, ERROR, "잘못된 요청", "");
+                send_response(client_socket, RESP_ERROR, RESP_INVALID_REQUEST, "");
             }
         }
         else if (strcmp(cmd, CMD_ADD_CHILD) == 0)
@@ -186,20 +196,20 @@ DWORD WINAPI handle_client(LPVOID arg)
             {
                 if (!is_user_exists(child_id))
                 {
-                    send_response(client_socket, ERROR, ERR_CHILD_USER_NOT_FOUND, "");
+                    send_response(client_socket, RESP_ERROR, ERR_CHILD_USER_NOT_FOUND, "");
                 }
                 else if (db_add_child(child_id, id))
                 {
-                    send_response(client_socket, SUCCESS, "자녀 추가 성공", "");
+                    send_response(client_socket, RESP_SUCCESS, RESP_ADD_CHILD_OK, "");
                 }
                 else
                 {
-                    send_response(client_socket, ERROR, "자녀 추가 실패", "");
+                    send_response(client_socket, RESP_ERROR, RESP_DB_ERROR, "");
                 }
             }
             else
             {
-                send_response(client_socket, ERROR, "잘못된 요청", "");
+                send_response(client_socket, RESP_ERROR, RESP_INVALID_REQUEST, "");
             }
         }
         else if (strcmp(cmd, CMD_DEL_CHILD) == 0)
@@ -208,20 +218,20 @@ DWORD WINAPI handle_client(LPVOID arg)
             {
                 if (!is_child_registered(child_id, id))
                 {
-                    send_response(client_socket, ERROR, ERR_INVALID_CHILD_ID, "");
+                    send_response(client_socket, RESP_ERROR, ERR_INVALID_CHILD_ID, "");
                 }
                 else if (db_delete_child(child_id, id))
                 {
-                    send_response(client_socket, SUCCESS, "자녀 삭제 성공", "");
+                    send_response(client_socket, RESP_SUCCESS, RESP_DEL_CHILD_OK, "");
                 }
                 else
                 {
-                    send_response(client_socket, ERROR, "자녀 삭제 실패", "");
+                    send_response(client_socket, RESP_ERROR, RESP_DB_ERROR, "");
                 }
             }
             else
             {
-                send_response(client_socket, ERROR, "잘못된 요청", "");
+                send_response(client_socket, RESP_ERROR, RESP_INVALID_REQUEST, "");
             }
         }
         else if (strcmp(cmd, CMD_CHILD_MEAL) == 0)
@@ -230,7 +240,7 @@ DWORD WINAPI handle_client(LPVOID arg)
             {
                 if (!is_child_registered(child_id, id))
                 {
-                    send_response(client_socket, ERROR, ERR_INVALID_CHILD_ID, "");
+                    send_response(client_socket, RESP_ERROR, ERR_INVALID_CHILD_ID, "");
                 }
                 else
                 {
@@ -240,22 +250,22 @@ DWORD WINAPI handle_client(LPVOID arg)
                         Meal meal_data = {0};
                         if (get_meal(date, child.edu_office, child.school_name, &meal_data))
                         {
-                            send_response(client_socket, SUCCESS, "급식 정보 조회 성공", meal_data.meal);
+                            send_response(client_socket, RESP_SUCCESS, RESP_GET_CHILD_MEAL_OK, meal_data.meal);
                         }
                         else
                         {
-                            send_response(client_socket, ERROR, ERR_CHILD_MEAL_NOT_FOUND, "");
+                            send_response(client_socket, RESP_ERROR, ERR_CHILD_MEAL_NOT_FOUND, "");
                         }
                     }
                     else
                     {
-                        send_response(client_socket, ERROR, ERR_CHILD_USER_NOT_FOUND, "");
+                        send_response(client_socket, RESP_ERROR, ERR_CHILD_USER_NOT_FOUND, "");
                     }
                 }
             }
             else
             {
-                send_response(client_socket, ERROR, "잘못된 요청", "");
+                send_response(client_socket, RESP_ERROR, RESP_INVALID_REQUEST, "");
             }
         }
         else if (strcmp(cmd, CMD_CHILD_MULTI_MEAL) == 0)
@@ -264,25 +274,25 @@ DWORD WINAPI handle_client(LPVOID arg)
             {
                 if (!is_child_registered(child_id, id))
                 {
-                    send_response(client_socket, ERROR, ERR_INVALID_CHILD_ID, "");
+                    send_response(client_socket, RESP_ERROR, ERR_INVALID_CHILD_ID, "");
                 }
                 else
                 {
                     char start_date[11], end_date[11];
                     if (sscanf(period, "%10[^-]-%10s", start_date, end_date) != 2)
                     {
-                        send_response(client_socket, ERROR, "잘못된 날짜 형식", "");
+                        send_response(client_socket, RESP_ERROR, ERR_INVALID_DATE_FORMAT, "");
                     }
                     else
                     {
                         // TODO: NEIS API 연동
-                        send_response(client_socket, SUCCESS, "급식 정보 조회 성공", "");
+                        send_response(client_socket, RESP_SUCCESS, RESP_GET_CHILD_MULTI_MEAL_OK, "");
                     }
                 }
             }
             else
             {
-                send_response(client_socket, ERROR, "잘못된 요청", "");
+                send_response(client_socket, RESP_ERROR, RESP_INVALID_REQUEST, "");
             }
         }
         else if (strcmp(cmd, CMD_GET_MEAL) == 0)
@@ -292,16 +302,16 @@ DWORD WINAPI handle_client(LPVOID arg)
                 Meal meal_data = {0};
                 if (get_meal(date, edu_office, school_name, &meal_data))
                 {
-                    send_response(client_socket, SUCCESS, "급식 정보 조회 성공", meal_data.meal);
+                    send_response(client_socket, RESP_SUCCESS, RESP_GET_MEAL_OK, meal_data.meal);
                 }
                 else
                 {
-                    send_response(client_socket, ERROR, ERR_MEAL_NOT_FOUND, "");
+                    send_response(client_socket, RESP_ERROR, ERR_MEAL_NOT_FOUND, "");
                 }
             }
             else
             {
-                send_response(client_socket, ERROR, "잘못된 요청", "");
+                send_response(client_socket, RESP_ERROR, RESP_INVALID_REQUEST, "");
             }
         }
         else if (strcmp(cmd, CMD_GET_MULTI_MEAL) == 0)
@@ -311,22 +321,22 @@ DWORD WINAPI handle_client(LPVOID arg)
                 char start_date[11], end_date[11];
                 if (sscanf(period, "%10[^-]-%10s", start_date, end_date) != 2)
                 {
-                    send_response(client_socket, ERROR, "잘못된 날짜 형식", "");
+                    send_response(client_socket, RESP_ERROR, ERR_INVALID_DATE_FORMAT, "");
                 }
                 else
                 {
                     // TODO: NEIS API 연동
-                    send_response(client_socket, SUCCESS, "급식 정보 조회 성공", "");
+                    send_response(client_socket, RESP_SUCCESS, RESP_GET_MULTI_MEAL_OK, "");
                 }
             }
             else
             {
-                send_response(client_socket, ERROR, "잘못된 요청", "");
+                send_response(client_socket, RESP_ERROR, RESP_INVALID_REQUEST, "");
             }
         }
         else
         {
-            send_response(client_socket, ERROR, "알 수 없는 명령어", "");
+            send_response(client_socket, RESP_ERROR, RESP_UNKNOWN_COMMAND, "");
         }
     }
 
@@ -342,7 +352,7 @@ DWORD WINAPI handle_client(LPVOID arg)
     }
     LeaveCriticalSection(&clients_mutex);
 
-    close_socket(client_socket);
+    closesocket(client_socket);
     free(arg);
     return 0;
 }
@@ -444,6 +454,20 @@ int main()
             fprintf(stderr, "클라이언트 연결 수락 실패, 오류: %d\n", WSAGetLastError());
             continue;
         }
+
+        printf("클라이언트 연결됨: %s:%d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+
+        // 클라이언트 요청 수신
+        char buffer[BUFFER_SIZE] = {0};
+        int bytes_received = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
+        if (bytes_received <= 0)
+        {
+            printf("클라이언트 연결 종료 또는 오류\n");
+            close_socket(client_socket);
+            continue;
+        }
+
+        printf("수신된 요청: %s\n", buffer);
 
         // 클라이언트 소켓 저장
         EnterCriticalSection(&clients_mutex);

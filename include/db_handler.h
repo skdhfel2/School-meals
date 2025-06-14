@@ -21,7 +21,7 @@ bool save_meal(const Meal *meal);
 bool get_meal(const char *date, const char *edu_office, const char *school_name, Meal *meal);
 
 // 자녀 관련
-bool db_get_children(const char *parent_id, Child *children, int *count);
+bool get_children_db(const char *parent_id, Child *children, int *count);
 bool db_add_child(const char *child_id, const char *parent_id);
 bool db_delete_child(const char *child_id, const char *parent_id);
 bool is_child_registered(const char *child_id, const char *parent_id);
