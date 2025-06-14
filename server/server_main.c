@@ -167,19 +167,8 @@ void handle_client(SOCKET client_socket) // 클라이언트와의 연결을 처�
 
             if (edu_office && school_name && date)
             {
-                // 학교 코드 조회
-                char edu_code[10] = {0};
-                char school_code[20] = {0};
-                
-                if (!resolve_school_code(school_name, edu_code, school_code))
-                {
-                    printf("❌ 학교 정보를 찾을 수 없습니다: %s\n", school_name);
-                    sprintf(response, "%s//%s", RESP_ERROR, "학교 정보를 찾을 수 없습니다.");
-                    send_data(client_socket, response, strlen(response));
-                    continue;
-                }
-
-                handle_meal(client_socket, edu_code, school_code, date);
+                // 이미 코드이므로 변환 없이 바로 사용
+                handle_meal(client_socket, edu_office, school_name, date);
             }
             else
             {
@@ -196,18 +185,60 @@ void handle_client(SOCKET client_socket) // 클라이언트와의 연결을 처�
 
             if (edu_office && school_name && start_date && end_date)
             {
-                // 학교 코드 조회
+                // 이미 코드이므로 변환 없이 바로 사용
+                handle_multi_meal(client_socket, edu_office, school_name, start_date, end_date);
+            }
+            else
+            {
+                sprintf(response, "%s//%s", RESP_ERROR, RESP_INVALID_REQUEST);
+                send_data(client_socket, response, strlen(response));
+            }
+        }
+        else if (strcmp(cmd, CMD_OTHER_MEAL) == 0)
+        {
+            char *edu_office_name = strtok(NULL, CMD_DELIMITER);
+            char *school_name = strtok(NULL, CMD_DELIMITER);
+            char *date = strtok(NULL, CMD_DELIMITER);
+            if (edu_office_name && school_name && date)
+            {
                 char edu_code[10] = {0};
                 char school_code[20] = {0};
-                
                 if (!resolve_school_code(school_name, edu_code, school_code))
                 {
-                    printf("❌ 학교 정보를 찾을 수 없습니다: %s\n", school_name);
+                    send_response(client_socket, RESP_ERROR, "학교 정보를 찾을 수 없습니다.", "");
+                    return 0;
+                }
+                char meal[MAX_MEAL_LEN] = {0};
+                if (get_meal_from_neis(edu_code, school_code, date, meal))
+                {
+                    send_response(client_socket, RESP_SUCCESS, "급식 정보 조회 성공", meal);
+                }
+                else
+                {
+                    send_response(client_socket, RESP_ERROR, ERR_MEAL_NOT_FOUND, "");
+                }
+            }
+            else
+            {
+                send_response(client_socket, RESP_ERROR, RESP_INVALID_REQUEST, "");
+            }
+        }
+        else if (strcmp(cmd, CMD_MULTI_OTHER_MEAL) == 0)
+        {
+            char *edu_office_name = strtok(NULL, CMD_DELIMITER);
+            char *school_name = strtok(NULL, CMD_DELIMITER);
+            char *start_date = strtok(NULL, CMD_DELIMITER);
+            char *end_date = strtok(NULL, CMD_DELIMITER);
+            if (edu_office_name && school_name && start_date && end_date)
+            {
+                char edu_code[10] = {0};
+                char school_code[20] = {0};
+                if (!resolve_school_code(school_name, edu_code, school_code))
+                {
                     sprintf(response, "%s//%s", RESP_ERROR, "학교 정보를 찾을 수 없습니다.");
                     send_data(client_socket, response, strlen(response));
                     continue;
                 }
-
                 handle_multi_meal(client_socket, edu_code, school_code, start_date, end_date);
             }
             else
