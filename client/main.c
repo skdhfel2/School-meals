@@ -57,7 +57,8 @@ int main(void)
         if (scanf("%d", &choice) != 1)
         {
             printf("잘못된 입력입니다.\n");
-            while (getchar() != '\n'); // 입력 버퍼 비우기
+            while (getchar() != '\n')
+                ; // 입력 버퍼 비우기
             continue;
         }
         getchar(); // 버퍼 비우기
@@ -104,22 +105,28 @@ void handle_main_menu(int choice)
         if (handle_login(id, pw, response))
         {
             printf("로그인 성공: %s\n", response);
-            while (1) {
-                if (strcmp(current_user_role, "parent") == 0) {
+            while (1)
+            {
+                if (strcmp(current_user_role, "parent") == 0)
+                {
                     print_parent_menu();
                     int menu_choice;
                     scanf("%d", &menu_choice);
                     getchar();
-                    
-                    if (menu_choice == 5) break;
+
+                    if (menu_choice == 5)
+                        break;
                     handle_parent_menu(menu_choice);
-                } else {
+                }
+                else
+                {
                     print_general_menu();
                     int menu_choice;
                     scanf("%d", &menu_choice);
                     getchar();
-                    
-                    if (menu_choice == 5) break;
+
+                    if (menu_choice == 5)
+                        break;
                     handle_general_menu(menu_choice);
                 }
             }
@@ -143,7 +150,7 @@ void handle_main_menu(int choice)
         fgets(edu_office, sizeof(edu_office), stdin);
         edu_office[strcspn(edu_office, "\n")] = 0;
 
-        printf("학교 코드: ");
+        printf("학교 이름: ");
         fgets(school_name, sizeof(school_name), stdin);
         school_name[strcspn(school_name, "\n")] = 0;
 

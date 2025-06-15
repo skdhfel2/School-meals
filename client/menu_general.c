@@ -31,20 +31,10 @@ void handle_general_menu(int choice)
 
         if (sub_choice == 1)
         {
-            printf("날짜 (YYYYMMDD): ");
-            for (i = 0; i < 8; i++)
+            if (!get_date_input(date, sizeof(date)))
             {
-                int c = getchar();
-                if (c == '\n' || c == EOF)
-                {
-                    printf("❌ 날짜 형식이 올바르지 않습니다. YYYYMMDD 형식으로 입력해주세요.\n");
-                    return;
-                }
-                date[i] = c;
+                return;
             }
-            date[8] = '\0';
-            while (getchar() != '\n')
-                ; // 남은 입력 버퍼 비우기
 
             if (get_meal_from_neis(current_user_edu_office, current_user_school, date, response))
             {
@@ -86,7 +76,7 @@ void handle_general_menu(int choice)
         fgets(edu_office, sizeof(edu_office), stdin);
         edu_office[strcspn(edu_office, "\n")] = 0;
 
-        printf("학교 코드: ");
+        printf("학교 이름: ");
         fgets(school_name, sizeof(school_name), stdin);
         school_name[strcspn(school_name, "\n")] = 0;
 
@@ -219,7 +209,8 @@ void handle_general_menu(int choice)
     case 4:
     { // 로그아웃
         handle_logout();
-        printf("로그아웃되었습니다.\n");
+        printf("\n👋 로그아웃 되었습니다.\n");
+        printf("➡️ 메인 메뉴로 돌아갑니다.\n");
         break;
     }
     }

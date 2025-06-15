@@ -27,6 +27,9 @@ bool handle_add_user(const char *id, const char *pw,
 bool handle_update_user(const char *id, const char *pw, const char *edu_office, const char *school_name, char *response);
 bool handle_delete_user(const char *id, char *response);
 
+// 교육청 입력 가이드 출력 함수 선언
+void print_edu_office_guide(void);
+
 // 기존 함수들의 별칭
 #define register_user handle_register
 #define update_user_by_field handle_update_user

@@ -279,7 +279,7 @@ bool handle_add_user(const char *id, const char *pw,
 
     // 응답 파싱
     char *status_str = strtok(response, CMD_DELIMITER); // "0", "1", "2"
-    char *msg = strtok(NULL, CMD_DELIMITER);            // 실제 메시지
+    char *msg = strtok(NULL, CMD_DELIMITER);            // 메시지
 
     if (!status_str || !msg)
     {
@@ -289,9 +289,22 @@ bool handle_add_user(const char *id, const char *pw,
     }
 
     *status = atoi(status_str);
-    strcpy(message, msg);
 
-    return true;
+    if (*status == RESP_SUCCESS && strcmp(msg, RESP_REGISTER_OK) == 0)
+    {
+        strcpy(message, "🎉 사용자가 성공적으로 추가되었습니다!");
+        return true;
+    }
+    else if (*status == RESP_DUPLICATE)
+    {
+        strcpy(message, "⚠️ 입력한 아이디는 이미 사용 중입니다.");
+        return false;
+    }
+    else
+    {
+        snprintf(message, BUFFER_SIZE, "❌ 사용자 추가 실패: %s", msg);
+        return false;
+    }
 }
 
 bool handle_update_user(const char *id, const char *pw, const char *edu_office, const char *school_name, char *response)
@@ -307,7 +320,26 @@ bool handle_update_user(const char *id, const char *pw, const char *edu_office, 
         return false;
     }
 
-    return receive_response(response);
+    if (!receive_response(response))
+    {
+        strcpy(response, "서버 응답 없음");
+        return false;
+    }
+
+    // 응답 파싱
+    char *status = strtok(response, CMD_DELIMITER); // 예: "0", "1"
+    char *msg = strtok(NULL, CMD_DELIMITER);        // 예: "잘못된 요청", "수정 완료" 등
+
+    if (!status || !msg)
+    {
+        strcpy(response, "서버 응답 파싱 오류");
+        return false;
+    }
+
+    // 메시지만 다시 포맷해서 response에 저장
+    snprintf(response, BUFFER_SIZE, "%s", msg);
+
+    return (strcmp(status, "1") == 0); // 상태코드 1이면 true 반환
 }
 
 bool handle_delete_user(const char *id, char *response)
@@ -322,7 +354,26 @@ bool handle_delete_user(const char *id, char *response)
         return false;
     }
 
-    return receive_response(response);
+    if (!receive_response(response))
+    {
+        strcpy(response, "서버 응답 없음");
+        return false;
+    }
+
+    // 응답 파싱
+    char *status = strtok(response, CMD_DELIMITER);
+    char *msg = strtok(NULL, CMD_DELIMITER);
+
+    if (!status || !msg)
+    {
+        strcpy(response, "서버 응답 파싱 오류");
+        return false;
+    }
+
+    // 사용자에게 보여줄 메시지만 따로 재구성
+    snprintf(response, BUFFER_SIZE, "%s", msg);
+
+    return (strcmp(status, "1") == 0); // "1"이면 성공
 }
 
 void print_edu_office_guide()

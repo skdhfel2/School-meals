@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include "handlers.h"
 
 // 교육청 코드 매핑
 static const struct
@@ -144,12 +145,14 @@ bool is_valid_id(const char *id)
 // 날짜 입력 받기
 int get_date_input(char *date, size_t size)
 {
-    printf("날짜 (YYYYMMDD): ");
+    printf("\n📅 날짜를 입력해주세요\n");
+    printf("→ 날짜 형식: YYYYMMDD (예: 20240621)\n");
+    printf("입력: ");
     safe_input(date, size);
 
     if (!validate_date_format(date))
     {
-        printf("잘못된 날짜 형식입니다. YYYYMMDD 형식으로 입력해주세요.\n");
+        printf("❌ 잘못된 날짜 형식입니다. YYYYMMDD 형식으로 정확히 8자리 숫자를 입력해주세요.\n");
         return 0;
     }
 
@@ -159,32 +162,36 @@ int get_date_input(char *date, size_t size)
 // 기간 입력 받기 (시작일-종료일)
 int get_period_input(char *start_date, char *end_date, size_t size)
 {
-    printf("\n=== 기간별 급식 조회 ===\n");
-    printf("※ 조회 가능 기간: 최대 7일\n");
-    printf("※ 날짜 형식: YYYYMMDD (예: 20240301)\n\n");
+    printf("\n📆 [기간별 급식 조회]\n");
+    printf("→ 최대 조회 기간: **7일 이내**\n");
+    printf("→ 날짜 형식: YYYYMMDD (예: 20240621)\n");
 
-    printf("시작 날짜 (YYYYMMDD): ");
+    // 시작 날짜 입력
+    printf("\n🗓️ 시작 날짜 입력\n");
+    printf("입력: ");
     safe_input(start_date, size);
 
     if (!validate_date_format(start_date))
     {
-        printf("잘못된 시작 날짜 형식입니다. YYYYMMDD 형식으로 입력해주세요.\n");
+        printf("❌ 잘못된 시작 날짜입니다. YYYYMMDD 형식으로 다시 입력해주세요.\n");
         return 0;
     }
 
-    printf("종료 날짜 (YYYYMMDD): ");
+    // 종료 날짜 입력
+    printf("\n🗓️ 종료 날짜 입력\n");
+    printf("입력: ");
     safe_input(end_date, size);
 
     if (!validate_date_format(end_date))
     {
-        printf("잘못된 종료 날짜 형식입니다. YYYYMMDD 형식으로 입력해주세요.\n");
+        printf("❌ 잘못된 종료 날짜입니다. YYYYMMDD 형식으로 다시 입력해주세요.\n");
         return 0;
     }
 
     // 시작일이 종료일보다 늦은 경우
     if (strcmp(start_date, end_date) > 0)
     {
-        printf("시작 날짜가 종료 날짜보다 늦을 수 없습니다.\n");
+        printf("❌ 시작 날짜는 종료 날짜보다 늦을 수 없습니다.\n");
         return 0;
     }
 
@@ -193,13 +200,13 @@ int get_period_input(char *start_date, char *end_date, size_t size)
     sscanf(start_date, "%4d%2d%2d", &year1, &month1, &day1);
     sscanf(end_date, "%4d%2d%2d", &year2, &month2, &day2);
 
-    // 날짜를 일수로 변환
+    // 단순화된 일수 계산 (윤년 반영 X)
     int days1 = year1 * 365 + month1 * 30 + day1;
     int days2 = year2 * 365 + month2 * 30 + day2;
 
     if (days2 - days1 > 6)
     {
-        printf("최대 7일까지만 조회 가능합니다.\n");
+        printf("❌ 기간은 최대 7일까지만 조회 가능합니다.\n");
         return 0;
     }
 
@@ -273,13 +280,44 @@ void get_password_input(char *password, size_t size)
 // 교육청 코드 입력 받기
 void get_edu_office_input(char *edu_office, size_t size)
 {
-    printf("교육청 이름: ");
-    safe_input(edu_office, size);
+    while (1)
+    {
+        printf("\n🏫 [교육청 이름 입력]\n");
+        print_edu_office_guide();
+        printf("입력: ");
+        safe_input(edu_office, size);
+
+        if (get_edu_office_code(edu_office) != NULL)
+        {
+            printf("✅ 교육청 입력 완료: %s\n", edu_office);
+            break;
+        }
+        else
+        {
+            printf("❌ 유효하지 않은 교육청 이름입니다. 다시 입력해주세요.\n");
+            printf("입력한 값: '%s'\n", edu_office);
+        }
+    }
 }
 
-// 학교 코드 입력 받기
+// 학교 이름 입력 받기
 void get_school_input(char *school, size_t size)
 {
-    printf("학교 코드: ");
-    safe_input(school, size);
+    while (1)
+    {
+        printf("\n🏫 [학교 이름 입력]\n");
+        printf("→ 예시: 서울고등학교, 탕정초등학교 등\n");
+        printf("입력: ");
+        safe_input(school, size);
+
+        if (strlen(school) >= 2)
+        {
+            printf("✅ 학교 이름 입력 완료: %s\n", school);
+            break;
+        }
+        else
+        {
+            printf("❌ 학교 이름은 최소 2자 이상이어야 합니다. 다시 입력해주세요.\n");
+        }
+    }
 }
