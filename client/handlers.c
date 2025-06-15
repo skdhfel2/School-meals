@@ -307,7 +307,8 @@ bool handle_add_user(const char *id, const char *pw,
     }
 }
 
-bool handle_update_user(const char *id, const char *pw, const char *edu_office, const char *school_name, char *response)
+bool handle_update_user(const char *id, const char *pw, const char *edu_office,
+                        const char *school_name, int *status, char *message)
 {
     char buffer[BUFFER_SIZE];
     snprintf(buffer, sizeof(buffer), "%s%s%s%s%s%s%s%s%s",
@@ -316,30 +317,32 @@ bool handle_update_user(const char *id, const char *pw, const char *edu_office, 
 
     if (!send_data(client_socket, buffer, strlen(buffer)))
     {
-        strcpy(response, "서버 통신 오류");
+        strcpy(message, "서버 통신 오류");
+        *status = RESP_ERROR;
         return false;
     }
 
+    char response[BUFFER_SIZE];
     if (!receive_response(response))
     {
-        strcpy(response, "서버 응답 없음");
+        strcpy(message, "서버 응답 없음");
+        *status = RESP_ERROR;
         return false;
     }
 
-    // 응답 파싱
-    char *status = strtok(response, CMD_DELIMITER); // 예: "0", "1"
-    char *msg = strtok(NULL, CMD_DELIMITER);        // 예: "잘못된 요청", "수정 완료" 등
+    char *status_str = strtok(response, CMD_DELIMITER);
+    char *msg = strtok(NULL, CMD_DELIMITER); // <-- 여기를 변경
 
-    if (!status || !msg)
+    if (!status_str || !msg)
     {
-        strcpy(response, "서버 응답 파싱 오류");
+        strcpy(message, "서버 응답 파싱 오류");
+        *status = RESP_ERROR;
         return false;
     }
 
-    // 메시지만 다시 포맷해서 response에 저장
-    snprintf(response, BUFFER_SIZE, "%s", msg);
-
-    return (strcmp(status, "1") == 0); // 상태코드 1이면 true 반환
+    *status = atoi(status_str);
+    snprintf(message, BUFFER_SIZE, "%s", msg);
+    return (*status == RESP_SUCCESS);
 }
 
 bool handle_delete_user(const char *id, char *response)
@@ -378,9 +381,12 @@ bool handle_delete_user(const char *id, char *response)
 
 void print_edu_office_guide()
 {
-    printf("※ 교육청 이름은 아래 중 하나를 정확히 입력해야 합니다.\n");
-    printf("서울특별시교육청, 부산광역시교육청, 대구광역시교육청, 인천광역시교육청,\n");
-    printf("광주광역시교육청, 대전광역시교육청, 울산광역시교육청, 세종특별자치시교육청,\n");
-    printf("경기도교육청, 강원도교육청, 충청북도교육청, 충청남도교육청,\n");
-    printf("전라북도교육청, 전라남도교육청, 경상북도교육청, 경상남도교육청, 제주특별자치도교육청\n");
+    printf("※ 교육청 이름은 아래 중 하나를 정확히 입력해야 합니다.\n\n");
+
+    printf("• 서울특별시교육청    • 부산광역시교육청    • 대구광역시교육청\n");
+    printf("• 인천광역시교육청    • 광주광역시교육청    • 대전광역시교육청\n");
+    printf("• 울산광역시교육청    • 세종특별자치시교육청\n");
+    printf("• 경기도교육청        • 강원도교육청        • 충청북도교육청\n");
+    printf("• 충청남도교육청      • 전라북도교육청      • 전라남도교육청\n");
+    printf("• 경상북도교육청      • 경상남도교육청      • 제주특별자치도교육청\n\n");
 }

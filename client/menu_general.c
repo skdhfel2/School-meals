@@ -171,21 +171,32 @@ void handle_general_menu(int choice)
         { // 사용자 수정
             printf("\n✏️ [사용자 수정]\n");
 
-            get_id_input(id, sizeof(id));                         //  기존 사용자 ID
-            get_password_input(pw, sizeof(pw));                   //  새 비밀번호
-            get_edu_office_input(edu_office, sizeof(edu_office)); //  새 교육청
-            get_school_input(school_name, sizeof(school_name));   //  새 학교명
+            get_id_input(id, sizeof(id));                         // 기존 사용자 ID
+            get_password_input(pw, sizeof(pw));                   // 새 비밀번호
+            get_edu_office_input(edu_office, sizeof(edu_office)); // 새 교육청
+            get_school_input(school_name, sizeof(school_name));   // 새 학교명
 
-            if (handle_update_user(id, pw, edu_office, school_name, response))
+            int status;
+            char message[BUFFER_SIZE];
+
+            if (handle_update_user(id, pw, edu_office, school_name, &status, message))
             {
-                printf("✅ 사용자 수정 성공: %s\n", response);
+                if (status == RESP_SUCCESS)
+                {
+                    printf("✅ 사용자 수정 성공\n");
+                }
+                else
+                {
+                    printf("❌ 사용자 수정 실패: %s\n", message);
+                }
             }
             else
             {
-                printf("❌ 사용자 수정 실패: %s\n", response);
+                printf("❌ 사용자 수정 실패 (통신 오류): %s\n", message);
             }
             break;
         }
+
         case 3:
         { // 사용자 삭제
             printf("\n🗑️ [사용자 삭제]\n");

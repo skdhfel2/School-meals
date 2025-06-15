@@ -24,7 +24,9 @@ bool get_children(const char *parent_id, char *response);
 bool handle_add_user(const char *id, const char *pw,
                      const char *edu_office, const char *school_name,
                      int *status, char *message);
-bool handle_update_user(const char *id, const char *pw, const char *edu_office, const char *school_name, char *response);
+bool handle_update_user(const char *id, const char *pw,
+                        const char *edu_office, const char *school_name,
+                        int *status, char *message);
 bool handle_delete_user(const char *id, char *response);
 
 // 교육청 입력 가이드 출력 함수 선언
