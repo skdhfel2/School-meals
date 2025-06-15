@@ -9,6 +9,7 @@
 // 응답 코드
 #define RESP_SUCCESS 1
 #define RESP_ERROR 0
+#define RESP_DUPLICATE 2
 
 // ✅ 문자열 응답 코드 (클라이언트 비교용)
 #define RESP_SUCCESS_STR "SUCCESS"

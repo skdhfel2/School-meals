@@ -83,7 +83,7 @@ bool handle_register(const char *id, const char *pw, const char *edu_office, con
 {
     if (!is_valid_edu_office(edu_office))
     {
-        strcpy(response, "올바른 교육청 이름을 입력하세요.");
+        strcpy(response, "❌ 올바른 교육청 이름이 아닙니다.\n예시: 서울특별시교육청, 경기도교육청");
         return false;
     }
 
@@ -94,24 +94,43 @@ bool handle_register(const char *id, const char *pw, const char *edu_office, con
 
     if (!send_data(client_socket, buffer, strlen(buffer)))
     {
-        strcpy(response, "서버 통신 오류");
+        strcpy(response, "❌ 서버와의 통신 중 문제가 발생했습니다. 다시 시도해주세요.");
         return false;
     }
 
     if (!receive_response(response))
     {
-        strcpy(response, "서버 응답 수신 실패");
+        strcpy(response, "❌ 서버로부터 응답을 받지 못했습니다. 네트워크를 확인해주세요.");
         return false;
     }
 
     // 응답 파싱
-    char *status = strtok(response, CMD_DELIMITER);
-    if (status && atoi(status) == RESP_SUCCESS)
+    char *status = strtok(response, CMD_DELIMITER); // 예: 1 또는 0
+    char *message = strtok(NULL, CMD_DELIMITER);    // 예: REGISTER_OK, ID_DUPLICATE 등
+
+    if (status == NULL || message == NULL)
     {
-        return true;
+        strcpy(response, "❌ 서버 응답 형식이 잘못되었습니다.");
+        return false;
     }
 
-    return false;
+    int code = atoi(status);
+
+    if (code == RESP_SUCCESS && strcmp(message, RESP_REGISTER_OK) == 0)
+    {
+        strcpy(response, "🎉 회원가입이 성공적으로 완료되었습니다!\n이제 로그인하여 서비스를 이용해보세요.");
+        return true;
+    }
+    else if (code == RESP_ERROR && strcmp(message, ERR_ID_DUPLICATE) == 0)
+    {
+        strcpy(response, "⚠️ 입력한 아이디는 이미 사용 중입니다.\n다른 아이디를 입력해주세요.");
+        return false;
+    }
+    else
+    {
+        snprintf(response, BUFFER_SIZE, "❌ 회원가입 중 오류 발생: %s", message);
+        return false;
+    }
 }
 
 void handle_logout(void)
@@ -234,7 +253,9 @@ bool get_children(const char *parent_id, char *response)
 */
 
 // 사용자 관리 핸들러
-bool handle_add_user(const char *id, const char *pw, const char *edu_office, const char *school_name, char *response)
+bool handle_add_user(const char *id, const char *pw,
+                     const char *edu_office, const char *school_name,
+                     int *status, char *message)
 {
     char buffer[BUFFER_SIZE];
     snprintf(buffer, sizeof(buffer), "%s%s%s%s%s%s%s%s%s",
@@ -243,11 +264,34 @@ bool handle_add_user(const char *id, const char *pw, const char *edu_office, con
 
     if (!send_data(client_socket, buffer, strlen(buffer)))
     {
-        strcpy(response, "서버 통신 오류");
+        strcpy(message, "서버 통신 오류");
+        *status = RESP_ERROR;
         return false;
     }
 
-    return receive_response(response);
+    char response[BUFFER_SIZE];
+    if (!receive_response(response))
+    {
+        strcpy(message, "서버 응답 없음");
+        *status = RESP_ERROR;
+        return false;
+    }
+
+    // 응답 파싱
+    char *status_str = strtok(response, CMD_DELIMITER); // "0", "1", "2"
+    char *msg = strtok(NULL, CMD_DELIMITER);            // 실제 메시지
+
+    if (!status_str || !msg)
+    {
+        strcpy(message, "서버 응답 파싱 오류");
+        *status = RESP_ERROR;
+        return false;
+    }
+
+    *status = atoi(status_str);
+    strcpy(message, msg);
+
+    return true;
 }
 
 bool handle_update_user(const char *id, const char *pw, const char *edu_office, const char *school_name, char *response)

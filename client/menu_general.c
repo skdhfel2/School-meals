@@ -143,25 +143,40 @@ void handle_general_menu(int choice)
 
         switch (sub_choice)
         {
-        case 1:
-        { // 사용자 추가
+        case 1: // 사용자 추가
+        {
             printf("\n👤 [사용자 추가]\n");
 
-            get_id_input(id, sizeof(id));       // 유효성 검사 포함
-            get_password_input(pw, sizeof(pw)); // 숫자 4자리
+            get_id_input(id, sizeof(id));
+            get_password_input(pw, sizeof(pw));
             get_edu_office_input(edu_office, sizeof(edu_office));
             get_school_input(school_name, sizeof(school_name));
 
-            if (handle_add_user(id, pw, edu_office, school_name, response))
+            int status;
+            char message[BUFFER_SIZE];
+
+            if (handle_add_user(id, pw, edu_office, school_name, &status, message))
             {
-                printf("✅ 사용자 추가 성공: %s\n", response);
+                if (status == RESP_SUCCESS)
+                {
+                    printf("✅ 사용자 추가 성공: %s\n", message);
+                }
+                else if (status == RESP_DUPLICATE)
+                {
+                    printf("⚠️ 사용자 추가 실패: 중복된 아이디입니다.\n");
+                }
+                else
+                {
+                    printf("❌ 사용자 추가 실패: %s\n", message);
+                }
             }
             else
             {
-                printf("❌ 사용자 추가 실패: %s\n", response);
+                printf("❌ 사용자 추가 실패 (통신 오류): %s\n", message);
             }
             break;
         }
+
         case 2:
         { // 사용자 수정
             printf("\n✏️ [사용자 수정]\n");

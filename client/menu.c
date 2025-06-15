@@ -147,7 +147,7 @@ void handle_login_menu_input(int choice)
         }
         else
         {
-            printf("❌ 회원가입 실패: %s\n", response);
+            printf("❌ 회원가입 실패:\n%s\n", response);
             printf("👉 입력한 정보를 다시 확인해주세요.\n");
         }
         break;

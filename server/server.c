@@ -131,6 +131,7 @@ DWORD WINAPI handle_client(LPVOID arg)
             {
                 if (is_user_exists(id))
                 {
+                    printf("❌ 회원가입 실패: 중복된 ID (%s)\n", id);
                     send_response(client_socket, RESP_ERROR, ERR_ID_DUPLICATE, "");
                 }
                 else
@@ -355,10 +356,13 @@ DWORD WINAPI handle_client(LPVOID arg)
                 char edu_code[10] = {0};
                 char school_code[20] = {0};
                 // school_name이 숫자(학교코드)라면 변환하지 않고 바로 사용
-                if (school_name[0] >= '0' && school_name[0] <= '9') {
+                if (school_name[0] >= '0' && school_name[0] <= '9')
+                {
                     strncpy(edu_code, edu_office, sizeof(edu_code) - 1);
                     strncpy(school_code, school_name, sizeof(school_code) - 1);
-                } else {
+                }
+                else
+                {
                     if (!resolve_school_code(school_name, edu_code, school_code))
                     {
                         printf("❌ 학교 정보를 찾을 수 없습니다: %s\n", school_name);
@@ -396,10 +400,13 @@ DWORD WINAPI handle_client(LPVOID arg)
                     char edu_code[10] = {0};
                     char school_code[20] = {0};
                     // school_name이 숫자(학교코드)라면 변환하지 않고 바로 사용
-                    if (school_name[0] >= '0' && school_name[0] <= '9') {
+                    if (school_name[0] >= '0' && school_name[0] <= '9')
+                    {
                         strncpy(edu_code, edu_office, sizeof(edu_code) - 1);
                         strncpy(school_code, school_name, sizeof(school_code) - 1);
-                    } else {
+                    }
+                    else
+                    {
                         if (!resolve_school_code(school_name, edu_code, school_code))
                         {
                             printf("❌ 학교 정보를 찾을 수 없습니다: %s\n", school_name);
@@ -453,7 +460,7 @@ bool handle_register_general(SOCKET client_socket, const char *id, const char *p
     // 학교 코드 조회
     char edu_code[10] = {0};
     char school_code[20] = {0};
-    
+
     if (!resolve_school_code(school_name, edu_code, school_code))
     {
         printf("❌ 학교 정보를 찾을 수 없습니다: %s\n", school_name);
