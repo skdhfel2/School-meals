@@ -23,4 +23,4 @@ void print_meal_query_menu(void);
 void print_user_management_menu(void);
 void print_child_management_menu(void);
 
-#endif // MENU_H 
+#endif // MENU_H

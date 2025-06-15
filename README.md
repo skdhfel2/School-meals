@@ -59,15 +59,33 @@ make
 2. 서버는 기본적으로 localhost:8080에서 실행됩니다.
 3. 데이터베이스는 SQLite를 사용하며, `school_meals.db` 파일에 저장됩니다.
 
+
+
+```
 ```
 School-meals
 ├─ client
 │  ├─ client.c
+│  ├─ client.exe
+│  ├─ client.o
 │  ├─ client_main.c
+│  ├─ handlers.c
+│  ├─ handlers.h
+│  ├─ handlers.o
 │  ├─ input_util.c
+│  ├─ input_util.o
+│  ├─ main.c
 │  ├─ Makefile
+│  ├─ menu.c
+│  ├─ menu.h
+│  ├─ menu.o
 │  ├─ menu_general.c
-│  └─ menu_parent.c
+│  ├─ menu_general.o
+│  ├─ menu_parent.c
+│  ├─ menu_parent.o
+│  ├─ network.c
+│  ├─ network.h
+│  └─ network.o
 ├─ data
 │  ├─ children.txt
 │  ├─ config.txt
@@ -77,6 +95,8 @@ School-meals
 │  ├─ common.h
 │  ├─ db.h
 │  ├─ db_handler.h
+│  ├─ input_util.h
+│  ├─ neis_api.h
 │  ├─ protocol.h
 │  └─ sqlite3.h
 ├─ lib
@@ -89,6 +109,7 @@ School-meals
    ├─ db_handler.o
    ├─ Makefile
    ├─ neis_api.c
+   ├─ neis_api.o
    ├─ network.c
    ├─ network.o
    ├─ school_meals.db
@@ -96,6 +117,7 @@ School-meals
    ├─ server.exe
    ├─ server.o
    ├─ server_handler.c
+   ├─ server_handler.o
    ├─ server_main.c
    └─ sqlite3.dll
 

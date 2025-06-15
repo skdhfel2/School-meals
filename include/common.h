@@ -91,6 +91,10 @@ bool validate_password(const char *password);
 bool validate_date_format(const char *date);
 void trim_string(char *str);
 
+// 유효성 검사 함수
+bool is_valid_id(const char *id);
+bool is_valid_password(const char *pw);
+
 // 공통 네트워크 함수
 bool init_network(void);
 void cleanup_network(void);

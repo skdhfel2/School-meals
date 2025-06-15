@@ -8,41 +8,67 @@
 // 충분한 응답 버퍼 확보
 #define RESPONSE_SIZE 2048
 
-void handle_register_parent(int client_socket, char *id, char *pw) // 부모 회원가입 요청을 처리하고, 성공 또는 실패 메시지를 클라이언트에게 보내는 함수
-
+bool is_valid_id(const char *id)
 {
-    char response[RESPONSE_SIZE] = {0}; // 응답 메시지를 저장할 버퍼
+    int len = strlen(id);
+    if (len < 4 || len > 16)
+        return false;
+    for (int i = 0; i < len; i++)
+    {
+        if (!isalnum(id[i]))
+            return false;
+    }
+    return true;
+}
 
-    if (is_user_exists(id)) // 이미 존재하면 중복 에러 응답
+bool is_valid_password(const char *pw)
+{
+    if (strlen(pw) != 4)
+        return false;
+    for (int i = 0; i < 4; i++)
+    {
+        if (!isdigit(pw[i]))
+            return false;
+    }
+    return true;
+}
+
+void handle_register_parent(int client_socket, char *id, char *pw)
+{
+    char response[RESPONSE_SIZE] = {0};
+
+    //  1. 입력값 유효성 검사 추가
+    if (!is_valid_id(id))
+    {
+        sprintf(response, "%s//%s", RESP_ERROR, "유효하지 않은 아이디입니다.");
+    }
+    else if (!is_valid_password(pw))
+    {
+        sprintf(response, "%s//%s", RESP_ERROR, "비밀번호는 숫자 4자리여야 합니다.");
+    }
+    else if (is_user_exists(id))
     {
         sprintf(response, "%s//%s", RESP_ERROR, ERR_ID_DUPLICATE);
     }
-    else // 존재하지 않으면 새 사용자 등록
+    else
     {
         User user;
         strncpy(user.id, id, MAX_ID_LEN - 1);
         user.id[MAX_ID_LEN - 1] = '\0';
-
         strncpy(user.pw, pw, MAX_PW_LEN - 1);
         user.pw[MAX_PW_LEN - 1] = '\0';
-
         strncpy(user.role, ROLE_PARENT, sizeof(user.role) - 1);
         user.role[sizeof(user.role) - 1] = '\0';
-
         user.edu_office[0] = '\0';
         user.school_name[0] = '\0';
 
-        if (add_user(&user)) // 사용자 등록 성공
-        {
+        if (add_user(&user))
             sprintf(response, "%s//%s", RESP_SUCCESS, CMD_REGISTER_PARENT);
-        }
-        else // 사용자 등록 실패
-        {
+        else
             sprintf(response, "%s//%s", RESP_ERROR, "DB_ERROR");
-        }
     }
 
-    if (send(client_socket, response, strlen(response), 0) < 0) // 응답 메시지를 클라이언트에게 전송
+    if (send(client_socket, response, strlen(response), 0) < 0)
     {
         perror("send failed (register_parent)");
     }
@@ -121,11 +147,11 @@ void handle_other_meal(int client_socket, char *edu_office, char *school_name, c
 {
     char response[RESPONSE_SIZE] = {0};
     char meal[MAX_MEAL_LEN] = {0};
-    
+
     // 학교 코드 조회
     char edu_code[10] = {0};
     char school_code[20] = {0};
-    
+
     if (!resolve_school_code(school_name, edu_code, school_code))
     {
         printf("❌ 학교 정보를 찾을 수 없습니다: %s\n", school_name);
@@ -158,7 +184,7 @@ void handle_multi_other_meal(int client_socket, char *edu_office, char *school_n
     // 학교 코드 조회
     char edu_code[10] = {0};
     char school_code[20] = {0};
-    
+
     if (!resolve_school_code(school_name, edu_code, school_code))
     {
         printf("❌ 학교 정보를 찾을 수 없습니다: %s\n", school_name);

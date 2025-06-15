@@ -26,21 +26,25 @@ void handle_general_menu(int choice)
         print_meal_query_menu();
         int sub_choice;
         scanf("%d", &sub_choice);
-        while (getchar() != '\n');  // 버퍼 비우기
+        while (getchar() != '\n')
+            ; // 버퍼 비우기
 
         if (sub_choice == 1)
         {
             printf("날짜 (YYYYMMDD): ");
-            for (i = 0; i < 8; i++) {
+            for (i = 0; i < 8; i++)
+            {
                 int c = getchar();
-                if (c == '\n' || c == EOF) {
+                if (c == '\n' || c == EOF)
+                {
                     printf("❌ 날짜 형식이 올바르지 않습니다. YYYYMMDD 형식으로 입력해주세요.\n");
                     return;
                 }
                 date[i] = c;
             }
             date[8] = '\0';
-            while (getchar() != '\n');  // 남은 입력 버퍼 비우기
+            while (getchar() != '\n')
+                ; // 남은 입력 버퍼 비우기
 
             if (get_meal_from_neis(current_user_edu_office, current_user_school, date, response))
             {
@@ -75,7 +79,8 @@ void handle_general_menu(int choice)
         print_meal_query_menu();
         int sub_choice;
         scanf("%d", &sub_choice);
-        while (getchar() != '\n');  // 버퍼 비우기
+        while (getchar() != '\n')
+            ; // 버퍼 비우기
 
         printf("교육청 이름: ");
         fgets(edu_office, sizeof(edu_office), stdin);
@@ -88,16 +93,19 @@ void handle_general_menu(int choice)
         if (sub_choice == 1)
         {
             printf("날짜 (YYYYMMDD): ");
-            for (i = 0; i < 8; i++) {
+            for (i = 0; i < 8; i++)
+            {
                 int c = getchar();
-                if (c == '\n' || c == EOF) {
+                if (c == '\n' || c == EOF)
+                {
                     printf("❌ 날짜 형식이 올바르지 않습니다. YYYYMMDD 형식으로 입력해주세요.\n");
                     return;
                 }
                 date[i] = c;
             }
             date[8] = '\0';
-            while (getchar() != '\n');  // 남은 입력 버퍼 비우기
+            while (getchar() != '\n')
+                ; // 남은 입력 버퍼 비우기
 
             if (get_meal_from_neis(edu_office, school_name, date, response))
             {
@@ -137,73 +145,56 @@ void handle_general_menu(int choice)
         {
         case 1:
         { // 사용자 추가
-            printf("아이디: ");
-            fgets(id, sizeof(id), stdin);
-            id[strcspn(id, "\n")] = 0;
+            printf("\n👤 [사용자 추가]\n");
 
-            printf("비밀번호: ");
-            fgets(pw, sizeof(pw), stdin);
-            pw[strcspn(pw, "\n")] = 0;
-
-            printf("교육청 이름: ");
-            fgets(edu_office, sizeof(edu_office), stdin);
-            edu_office[strcspn(edu_office, "\n")] = 0;
-
-            printf("학교 코드: ");
-            fgets(school_name, sizeof(school_name), stdin);
-            school_name[strcspn(school_name, "\n")] = 0;
+            get_id_input(id, sizeof(id));       // 유효성 검사 포함
+            get_password_input(pw, sizeof(pw)); // 숫자 4자리
+            get_edu_office_input(edu_office, sizeof(edu_office));
+            get_school_input(school_name, sizeof(school_name));
 
             if (handle_add_user(id, pw, edu_office, school_name, response))
             {
-                printf("사용자 추가 성공: %s\n", response);
+                printf("✅ 사용자 추가 성공: %s\n", response);
             }
             else
             {
-                printf("사용자 추가 실패: %s\n", response);
+                printf("❌ 사용자 추가 실패: %s\n", response);
             }
             break;
         }
         case 2:
         { // 사용자 수정
-            printf("아이디: ");
-            fgets(id, sizeof(id), stdin);
-            id[strcspn(id, "\n")] = 0;
+            printf("\n✏️ [사용자 수정]\n");
 
-            printf("새 비밀번호: ");
-            fgets(pw, sizeof(pw), stdin);
-            pw[strcspn(pw, "\n")] = 0;
-
-            printf("새 교육청 이름: ");
-            fgets(edu_office, sizeof(edu_office), stdin);
-            edu_office[strcspn(edu_office, "\n")] = 0;
-
-            printf("새 학교 코드: ");
-            fgets(school_name, sizeof(school_name), stdin);
-            school_name[strcspn(school_name, "\n")] = 0;
+            get_id_input(id, sizeof(id));                         //  기존 사용자 ID
+            get_password_input(pw, sizeof(pw));                   //  새 비밀번호
+            get_edu_office_input(edu_office, sizeof(edu_office)); //  새 교육청
+            get_school_input(school_name, sizeof(school_name));   //  새 학교명
 
             if (handle_update_user(id, pw, edu_office, school_name, response))
             {
-                printf("사용자 수정 성공: %s\n", response);
+                printf("✅ 사용자 수정 성공: %s\n", response);
             }
             else
             {
-                printf("사용자 수정 실패: %s\n", response);
+                printf("❌ 사용자 수정 실패: %s\n", response);
             }
             break;
         }
         case 3:
         { // 사용자 삭제
-            printf("삭제할 아이디: ");
-            fgets(id, sizeof(id), stdin);
-            id[strcspn(id, "\n")] = 0;
+            printf("\n🗑️ [사용자 삭제]\n");
+            printf("→ 삭제할 아이디를 입력하세요.\n");
+
+            get_id_input(id, sizeof(id)); //  유효성 검사 포함
 
             if (handle_delete_user(id, response))
             {
-                printf("사용자 삭제 성공: %s\n", response);
+                printf("✅ 사용자 삭제 성공: %s\n", response);
             }
             else
             {
-                printf("사용자 삭제 실패: %s\n", response);
+                printf("❌ 사용자 삭제 실패: %s\n", response);
             }
             break;
         }
